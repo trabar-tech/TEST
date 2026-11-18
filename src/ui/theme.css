@@ -1,0 +1,17 @@
+/*
+ * Global theme tokens. Kept to a handful of variables: the UI is mostly
+ * inline-styled DOM so that a single-file build has no external requests.
+ */
+:root {
+  --ink: #c9d3dd;
+  --ink-dim: #7f8d9b;
+  --panel: rgba(9, 12, 15, 0.84);
+  --line: rgba(120, 140, 160, 0.24);
+  --signal: #d8a85a;
+  --alarm: #a8493f;
+  --regime: #8b1f29;
+}
+
+::selection {
+  background: rgba(216, 168, 90, 0.28);
+}
