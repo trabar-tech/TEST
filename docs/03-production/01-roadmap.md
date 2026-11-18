@@ -13,6 +13,23 @@ updated: 2026-11-18
 **7 phases.** Each ends in a **playable** and (from Phase 1) a **gate**. Phases 0–4 are the
 project; 5 is polish/release; 6 is the expansion, gated by a prototype.
 
+> **This file is the one-line view. The buildable version is in `phases/`** — per-phase scope,
+> entry/exit criteria, task cards (why / what / acceptance / not-included / cut candidate),
+> session plans, gate scripts with pass thresholds and pre-committed failure ladders.
+> Start at `phases/00-phase-index.md`.
+
+| Phase | Detail | Sessions | Gate |
+|---|---|---|---|
+| 0 | `phases/01-phase-0-harness.md` | 2–4 | — |
+| 1 | `phases/02-phase-1-record-slice.md` | 5–8 | G0 |
+| 2 | `phases/03-phase-2-tactical.md` | 6–9 | G1 |
+| 3 | `phases/04-phase-3-sim-directors.md` | 7–10 | G2 |
+| 4 | `phases/05-phase-4-campaign.md` | 6–8 | G3 |
+| 5 | `phases/06-phase-5-release.md` | 4–6 | — |
+| 6 | `phases/07-phase-6-overseer.md` | 1 + 10–14 | G4 |
+
+**Total: 30–45 sessions for the base game**, 11–15 more for the expansion.
+
 Legend: `[ ]` todo · `[~]` in progress · `[p]` playable · `[v]` verified · `[x]` cut
 
 ---

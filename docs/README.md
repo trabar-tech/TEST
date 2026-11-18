@@ -47,8 +47,17 @@ docs/
 │   └─ 05-overwatch-expansion.md
 ├─ 03-production/
 │   ├─ 00-method.md             ← how docs→game actually runs (the process critique)
-│   ├─ 01-roadmap.md            ← phases, task IDs, acceptance criteria, cut list
-│   └─ 02-risk-register.md
+│   ├─ 01-roadmap.md            ← the one-line phase view, task IDs, cut list
+│   ├─ 02-risk-register.md
+│   └─ phases/                  ← THE BUILDABLE PLAN: per-phase scope, task cards, gate scripts
+│       ├─ 00-phase-index.md    ← start here: standing rules, gate protocol, schedule breaks
+│       ├─ 01-phase-0-harness.md
+│       ├─ 02-phase-1-record-slice.md
+│       ├─ 03-phase-2-tactical.md
+│       ├─ 04-phase-3-sim-directors.md
+│       ├─ 05-phase-4-campaign.md
+│       ├─ 06-phase-5-release.md
+│       └─ 07-phase-6-overseer.md
 ├─ 04-tech/
 │   └─ 01-tech-design.md        ← web stack, architecture, budgets, determinism
 ├─ 05-decisions/                ← ADRs: irreversible choices + the reasoning
@@ -152,8 +161,9 @@ sessions of memory loss.
 2. `01-gdd.md` §1–3 — pillars and the shift loop
 3. `02-systems/02-inspection-and-record.md` — the mechanical heart (the Record)
 4. `06-research/00-index.md` §1 — the seven things prior art taught us
-5. `03-production/01-roadmap.md` — what is actually being built next
-6. `glossary.md` — the words
+5. `03-production/phases/00-phase-index.md` — how work actually runs, phase by phase
+6. `03-production/01-roadmap.md` — the one-line view and the cut list
+7. `glossary.md` — the words
 
 ## 7a. Rule for borrowing from other games
 
