@@ -210,8 +210,17 @@ The Directorate will ask why there were no detentions. That is the entire moral 
 
 ## 7. Squad AI
 
+> Architecture: **small behaviour trees (12–20 nodes)** for officers, **utility scoring** for
+> hostiles. Rationale and per-tick budget in `06-research/02-npc-decision-architectures.md`.
+> Deliberately *not* behaviour trees of Isolation's scale (100 nodes): our officers are meant to
+> be literal executors, and complexity would fight the fantasy.
+
 - **Literal executors.** They do what's queued; they pathfind, they take cover, they shoot when
   authorised, they *do not* invent plans.
+- **Two cheap "thinking" tells** (borrowed from Isolation's alien, which is the only part of it
+  we want): when idle, units (a) **double back** ~40% of the distance to a point of interest and
+  re-check it, and (b) **stand and look**, rotating through two facing sectors on arrival. Twenty
+  lines, and it is what players actually perceive as competence.
 - **Traits** (2 per officer, visible in the roster): `Disciplined` (keeps queue under fire),
   `Jumpy` (auto-escalates when startled — dangerous), `Methodical` (+20% speed for Clear),
   `Talker` (can resolve a room with rung 1), `Bruiser` (rung 2 stronger), `Paper-pusher`
@@ -219,7 +228,9 @@ The Directorate will ask why there were no detentions. That is the entire moral 
 - **Named, numbered, mortal.** Losing an officer creates: a report line *you must file* (and
   can lie about), a notice to their family (an actual UI screen), and a squad morale hit.
 - **Overwatch's voice** (radio) comments on squad actions constantly. It is *correct* often
-  enough to trust and *wrong* often enough to hurt.
+  enough to trust and *wrong* often enough to hurt. Its hints come from the Eye's knowledge
+  (`SYS-DIR-01` §8), so a hint can be *confidently wrong* — that is the point of the two-brain
+  split, imported honestly.
 
 ---
 
@@ -233,6 +244,10 @@ The Directorate will ask why there were no detentions. That is the entire moral 
 4. A door's noise radius is audible-derived in the log (so an audit can prove what a neighbour
    heard).
 5. A 34-agent crowd runs at 60 fps alongside 4 officers on the reference machine.
+6. **Fairness doctrine holds**: no ambush on the player's first visit to a room; every incident is
+   completable at rung ≤2 with at most one recon token. (Authoring checklist, verified per map.)
+7. **AI budget**: ≤125 µs/tick for 40 agents; perception is the dominant cost — verify with the
+   profiler, not by eye (`06-research/02-...` §6).
 
 ---
 

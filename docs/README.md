@@ -54,7 +54,12 @@ docs/
 ├─ 05-decisions/                ← ADRs: irreversible choices + the reasoning
 │   ├─ ADR-0001-web-first-stack.md
 │   ├─ ADR-0002-paper-truth.md
-│   └─ ADR-0003-original-ip.md
+│   ├─ ADR-0003-original-ip.md
+│   └─ ADR-0004-director-architecture.md
+├─ 06-research/                 ← prior art: what shipped games do, adopted/rejected ledger
+│   ├─ 00-index.md              ← the ledger + sources (read before designing AI/sim/content)
+│   ├─ 01-director-ai-anatomy.md
+│   └─ 02-npc-decision-architectures.md
 ├─ _templates/                  ← copy these; do not invent new formats
 │   ├─ system-spec.md
 │   ├─ task.md
@@ -146,5 +151,21 @@ sessions of memory loss.
 1. `00-pitch.md` — the fantasy in one page
 2. `01-gdd.md` §1–3 — pillars and the shift loop
 3. `02-systems/02-inspection-and-record.md` — the mechanical heart (the Record)
-4. `03-production/01-roadmap.md` — what is actually being built next
-5. `glossary.md` — the words
+4. `06-research/00-index.md` §1 — the seven things prior art taught us
+5. `03-production/01-roadmap.md` — what is actually being built next
+6. `glossary.md` — the words
+
+## 7a. Rule for borrowing from other games
+
+We are an unashamed genre remix, so borrowing is normal — but it must leave a trail.
+
+1. **Research before design** on any AI, simulation or content-selection system. Write findings in
+   `06-research/`, including *what we rejected and why*.
+2. **Every borrowed mechanism gets a verdict** in the adopted/rejected ledger
+   (`06-research/00-index.md` §2). If it isn't in the ledger, it isn't a decision yet.
+3. **A mechanic must justify itself against our thesis** ("the record is the world"), not against
+   its source. "Because *Alien: Isolation* did it" is not a justification — see ADR-0003.
+4. **Architecture choices get an ADR** (e.g. ADR-0004 for directors), because they're expensive
+   to reverse.
+5. **Legal check** on anything that resembles a patented system (see Nemesis boundary,
+   `06-research/01-...§6`).

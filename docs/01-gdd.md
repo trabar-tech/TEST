@@ -418,6 +418,22 @@ player*, so their disagreements produce texture: the Cell thinks you're a brutal
 thinks you're sloppy, and the Desk gives you a directive that requires you to be both
 inconsistent. That is the game.
 
+**How each one is actually implemented** (researched before designing — see §4.7 and
+`06-research/`; decision recorded in `ADR-0004`):
+
+| Director | Architecture | Why this and not a planner |
+|---|---|---|
+| The Desk | **Utility-scored storylet deck** — filter by prerequisites, score by novelty × fault-line alignment × pacing fit, weighted draw | content scales linearly; a designer tunes weights in JSON, never code |
+| The Cell | **HTN-lite**: 3–5 hand-authored 3-step plans with preconditions and failure states | the player must be able to *discover* plans via informants, which requires authoring, not emergence |
+| The Eye | **A gauge, not a planner**: an Oversight Attention scalar + an escalation ladder | its advantage is knowledge the actors lack, delivered as fallibly as a radio call |
+| The Arbiter | **4-state pacing FSM** (calm → build → peak → release) owning hard budgets | the *Left 4 Dead* lesson: pace with a small machine, fill with a big deck |
+
+**Oversight Attention** replaced the earlier "the Eye is always watching" assumption, because
+research showed a panopticon is dramatically inert (nothing to hide, so nothing at stake).
+Attention now *varies*, is *inferable* from the world, and is both a threat you can spend down
+(honest filing) and a weapon you can aim at a rival warden. That single change is what gives
+Act II its tension.
+
 ### 4.3 Civilian routine model
 
 Every visible agent has a **day plan** generated from a template per archetype:
@@ -481,6 +497,55 @@ Three kinds of authored-feeling content, all data-driven:
    greeting you. Generated from the sim state, not scripted set-dressing.
 3. **Crisis events** (rare): the canal body, the checkpoint bombing, the informant's
    disappearance. Each triggers a *multi-shift* thread.
+
+**Content format: storylets.** Every one of the above is authored as a storylet —
+`content + prerequisites + effects` — and drawn from weighted decks rather than branching trees.
+This is the *Fallen London* / quality-based-narrative pattern, chosen because content cost grows
+*linearly* with authoring instead of exponentially with depth, and because prerequisites are
+natural queries against our simulation state (report tags, grudges, temperature, shift).
+
+Two refinements we take from that tradition:
+- **Opportunity decks** for requisition, Syndicate favours and Congregation pleas — deck
+  composition becomes a second-order strategy.
+- **Epilogue storylets**: delayed content that fires 3–6 shifts after its cause. This is how a
+  silenced witness resurfaces, or a family you protected is referenced. Cheap: a timestamp and a
+  predicate, not a script.
+
+**The connective-tissue budget.** Research on comparable simulated cities found their failure
+mode is not simulation quality but *isolation* — discrete cases with no connective tissue. So:
+**≥40% of authored micro-events must reference prior state** (a named citizen, a filed line, a
+faction grudge, a family event). An event that could happen to anyone on any day is B-tier and
+gets a lower deck weight.
+
+### 4.7 What prior art actually told us (research summary)
+
+Full analysis, sources and an adopted/rejected ledger: `06-research/`. The seven findings that
+changed decisions:
+
+1. **Alien: Isolation's Director is smaller than its reputation** — a utility job system reading a
+   menace gauge, handing *hints* to a separate, situated behaviour tree. The horror is the
+   **knowledge gap** ("one brain knows, the other must find"), not clever planning. We adopted the
+   gap; we rejected the stalking frame, because every output of that director assumes the monster
+   is the story and our world must feel indifferent.
+2. **Left 4 Dead's Director is four rules and a 4-state FSM.** Valve: *"the simplest worked really
+   effectively."* Hence the Arbiter, and the "Law of Small Directors" (≤~120 lines each, all
+   traceable).
+3. **RimWorld's storytellers aren't intelligent** — scheduled dice with personalities. The depth
+   is in the sim underneath plus **apophenia**. Hence the **12-Known-faces cap**: a cast you can
+   hold in your head beats a cast that is statistically rich.
+4. **Shadows of Doubt** proves 250–300 routine-driven citizens is feasible, and that *repetition
+   and missing connective tissue* are the failure modes. Hence our small sector, the
+   connective-tissue budget, and the solvability failsafes.
+5. **Storylet/QBN is the right content architecture** (see §4.6).
+6. **Do not build a Nemesis system.** Warner Bros. holds a patent on procedurally generated
+   characters who remember encounters and are promoted through a hierarchy (coverage places
+   expiry around 2035). Our grudges are **archival, not dramaturgical**: we remember what was
+   written down, we do not grow a returning rival. Boundary documented in
+   `06-research/01-director-ai-anatomy.md` §6.
+7. **Pick the AI architecture per layer, not per game.** Officers: small behaviour trees (12–20
+   nodes). Hostiles: utility scoring over ~10 actions. Civilians: schedules, no decisions.
+   Crowds: a mood graph. The Cell: HTN-lite. GOAP: rejected (search cost, replanning spikes on a
+   browser budget).
 
 ---
 
@@ -655,10 +720,16 @@ politics, Overwatch expansion, art beyond placeholder.
 
 **Biggest unknowns (ranked):**
 1. Does the Record actually *feel* like the core? (Prototype P1 — go/no-go)
-2. Is Papers-Please inspection repetitive by shift 5? (mitigation: questions + social tells)
+2. Is Papers-Please inspection repetitive by shift 5? (mitigation: questions + social tells —
+   and note the research caveat: in *Papers, Please* the tedium *is* the argument, so the answer
+   may be to make repetition thematic rather than to remove it)
 3. Can a web build hold the tactical + sim layers at 60 fps? (tech risk, `02-risk-register.md`)
 4. Is RTwP + solo slow-mo two games stapled together? (mitigation: Focus and pause share
    one timescale engine and one order vocabulary)
+5. **Does a utility-scored deck read as arbitrary?** (R17 — mitigation: transparent purpose,
+   opaque maths; the player can always name *why* the Directorate did something)
+6. **Do 60 storylets survive 6 shifts?** (R18 — mitigation: connective-tissue budget and
+   epilogue callbacks that make old content feel new)
 
 ---
 

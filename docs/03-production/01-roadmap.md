@@ -82,23 +82,33 @@ Gate G1.
 
 ---
 
-## Phase 3 — Simulation, directors, campaign shape (6–9 sessions)
+## Phase 3 — Simulation, directors, campaign shape (7–10 sessions)
 
 Goal: 6 shifts that feel like a place with a memory. Gate G2.
+**Architecture is decided (ADR-0004); this phase is implementation + content, not exploration.**
 
 | ID | Task | Acceptance check |
 |---|---|---|
 | `[ ]` P3-T01 | Household records (60) + per-shift sim tick < 15 ms | 10 no-input shifts produce a coherent rising-tension history |
-| `[ ]` P3-T02 | Agent **materialisation** from households (deterministic) | a person you arrested appears as a named relative later |
+| `[ ]` P3-T02 | Agent **materialisation** from households (deterministic) + **12-Known cap** | a person you arrested appears as a named relative later; Known set never exceeds 12 |
 | `[ ]` P3-T03 | Temperature formula + colour grade + barks driven by it | players can predict "the street is worse today" without a meter |
-| `[ ]` P3-T04 | The **Cell** plan engine (3-shift plans, informant-discoverable) | a plan can be discovered and prevented tactically |
-| `[ ]` P3-T05 | The **Desk** fault-line deck weighting + Arbiter budgets | no archetype repeats in 3 shifts; ≥1 quiet scene/shift |
-| `[ ]` P3-T06 | The **Eye** escalation ladder (drone → checkpoint → forced audit) | honesty buys autonomy; the trade is legible |
-| `[ ]` P3-T07 | 60 micro-events authored + weighted | a shift's Beat has ≥3 distinct encounters |
-| `[ ]` P3-T08 | Directive system with contradiction graph (80 directives) | a daily directive can contradict a standing one and both are enforceable |
+| `[ ]` P3-T04 | The **Cell** plan engine (HTN-lite: 3–5 authored 3-step plans) | a plan can be discovered by informants and prevented tactically |
+| `[ ]` P3-T05 | **Storylet deck runtime**: prereqs, utility scoring, weighted draw | adding a storylet JSON file changes behaviour with no code change |
+| `[ ]` P3-T06 | The **Desk** fault-line weighting over the deck | the deck measurably targets the player's highest fault lines (log assertion) |
+| `[ ]` P3-T07 | The **Arbiter** 4-state pacing FSM + hard budgets | budgets hold for 50 simulated shifts; no black-box decisions |
+| `[ ]` P3-T08 | **Oversight Attention** gauge + Eye escalation ladder | honest filing lowers attention within 2 shifts; the player can name why |
+| `[ ]` P3-T09 | **AI score inspector** (dev overlay: candidate actions, axes, scores) | a designer can tune a curve in JSON and see the delta without a rebuild |
+| `[ ]` P3-T10 | 60 micro-events authored as storylets + weighted | a shift's Beat has ≥3 distinct encounters; ≥40% reference prior state |
+| `[ ]` P3-T11 | Directive system with contradiction graph (80 directives) | a daily directive can contradict a standing one and both are enforceable |
+| `[ ]` P3-T12 | **Epilogue storylets** (delayed callbacks, 3–6 shifts) | a silenced witness resurfaces unprompted; a protected family is referenced later |
 
-**Gate G2:** *"Does the city feel alive and unfair in the right way?"*
+**Gate G2:** *"Does the city feel alive and unfair in the right way?"* Also ask: *"Can you name
+three citizens?"* (apophenia check — research R-1).
 **If fail:** cut one faction (the Congregation is the easiest cut), keep the Cell + Eye.
+
+**New dependency:** P3-T05 (deck runtime) must land before P3-T06, T10, T11 and T12. It is the
+single most reused piece of code in the project after the Record — build it as a library, not a
+system.
 
 ---
 

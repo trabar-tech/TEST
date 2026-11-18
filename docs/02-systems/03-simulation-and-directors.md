@@ -48,6 +48,33 @@ occasionally materialises agents for the tactical layer.
 
 `belief` is written by SYS-REC-01 from the player's *claims* — never from truth.
 
+### 2.1 The 12-known-faces rule (research R-1)
+
+Adapted from RimWorld's apophenia budget: the player can hold ~a dozen people in their head, and
+a cast larger than that *dilutes* memory rather than enriching it.
+
+- **Known citizens:** max **12** at any time — named, portraited, with a one-line history that
+  the Registry tracks. These are the people who can wound the player emotionally.
+- **Records:** the other ~48 households exist as registry entries, materialising into Known
+  status only when the player interacts meaningfully with them (2+ interactions, or a filed line
+  naming them, or a faction link).
+- **Eviction from the Known set is a feature:** a household that is moved on, dies, or goes
+  silent leaves a *gap*, and the player notices the roster shrinking. That is the cheapest
+  emotional beat in the game.
+
+HYPOTHESIS: 12 is the right cap at 15 shifts. Test at G2 by asking testers to name three
+citizens unprompted.
+
+### 2.2 Grudges are records, not rivals (legal boundary — research R-6)
+
+A grudge is a **record with a cause**: `{citizen_id, cause_line_id, intensity, decay_rule,
+satisfying_actions[]}`. It changes disposition, dialogue and the odds of that person appearing in
+an incident. It **never** generates a scarred returning nemesis, and there is no enemy hierarchy
+that promotes anyone based on encounters with the player.
+
+Read `06-research/01-director-ai-anatomy.md` §6 before touching this system: the Nemesis system is
+patented, and "the game is growing a rival" is the line we do not cross.
+
 ---
 
 ## 3. Per-shift update (deterministic, seeded)
@@ -101,12 +128,19 @@ highest-value 200 lines of code in the project — prioritise it in Phase 3.
 
 # SYS-DIR-01 · Directors
 
+> **Architecture decided in `05-decisions/ADR-0004`. Read it plus `06-research/` before editing
+> this section.** In one line: a director is a **weighted storylet deck plus a small scoring
+> function**, the Arbiter is a **4-state pacing FSM**, the Cell uses **HTN-lite authored plans**,
+> and the Eye is **a gauge, not a planner**.
+
 ## 5. Why three, not one
 
 The brief asked for an Alien-Isolation-style director. That model — one invisible intelligence
 hunting the player — is wrong here: it centres the player in a world that should feel
-indifferent. Instead, three directors with **different models of the player**, plus a neutral
-pacer.
+indifferent. Research confirmed this is not a matter of taste: Isolation's director exists to
+push danger toward the player, and every one of its outputs assumes the monster is the story.
+Ours must assume the *city* is the story. Instead: three directors with **different models of
+the player**, plus a neutral pacer. *(Full anatomy: `06-research/01-director-ai-anatomy.md` §1.)*
 
 | | **The Desk** (Pressure) | **The Cell** (Insurgency) | **The Eye** (Overwatch) |
 |---|---|---|---|
@@ -141,7 +175,33 @@ whether it's a genuine value or just a habit). Budget: max 1 "probe the opposite
   offer, a supply run, an amnesty directive). **The game must always offer a way back — it may
   be ugly and expensive, but it must exist.**
 
-## 7. The Cell's plan engine
+### 6.1 The Desk as a deck, mechanically (ADR-0004)
+
+```
+candidates = storylets where prerequisites(player, sector, shift) are satisfied
+score(s)   = novelty(s)            // 0 if archetype seen in 3 shifts, 1 otherwise
+           × fault_alignment(s)    // |dot(s.fault_lines, player.fault_vector)|, clamped
+           × pacing_fit(s, arbiter.state)   // calm wants quiet cards, peak wants pressure
+           × temperature_fit(s)
+           × 0.15 + 0.85        // floor, so nothing is ever impossible — only unlikely
+deck       = weighted sample of k candidates; k = 3 at calm, 2 at peak
+```
+
+Four numbers, one product, one floor. If this needs a fifth factor, add a director instead.
+
+### 6.2 The Arbiter's pacing FSM (L4D borrow — research §2)
+
+| State | Enters when | What it permits | Exits when |
+|---|---|---|---|
+| **CALM** | shift start, or 1 shift after release | quiet micro-events, directives, family scenes; no armed incidents | 3+ storylets consumed, or temperature > 60 |
+| **BUILD** | 1 quiet scene played | 1 armed incident max, rising pressure barks | player commits force, or a faction plan completes |
+| **PEAK** | an incident is dispatched | no new incidents; the scene is the scene | incident resolved |
+| **RELEASE** | after any lethal/collective force or a death | forced quiet content, Overwatch commentary, no threats for 1 shift | next shift start |
+
+The FSM is ~80 lines and owns **budgets, not content**. This is the single most important
+structural lesson from *Left 4 Dead*: pace with a small machine, fill with a big deck.
+
+## 7. The Cell's plan engine (HTN-lite — research §3)
 
 Three-shift plans as small state machines, so the insurgency feels *purposive* rather than
 random:
@@ -171,6 +231,38 @@ The Eye is **not** adversarial to the player by nature — it's adversarial when
 **Giving the Eye information (honest reports, camera repairs) buys you freedom.** That trade is
 the moral texture of Act II: the price of autonomy is transparency to the regime.
 
+### 8.1 Oversight Attention — the menace gauge, re-purposed (research R-2)
+
+Isolation's menace gauge measures *how afraid the player should be*. Ours measures **how closely
+the Eye is watching the player**, which is a different and more bureaucratic kind of pressure.
+
+```
+attention = 0.35 * camera_coverage_over_player
+          + 0.30 * recent_contradictions_in_report   (0..1, decays 20%/shift)
+          + 0.20 * proximity_to_known_cell_activity
+          + 0.15 * (1 - filing_speed_percentile)     // slow, careful filers look nervous
+```
+
+| Attention | Player experience |
+|---|---|
+| 0–25 | invisible; the radio is quiet; requisitions approved |
+| 26–55 | occasional check-ins; audits are stricter on *force* discrepancies |
+| 56–80 | Overwatch comments on your patrols; a drone shadows you; family is asked about you |
+| 81–100 | a **Compliance Review** is scheduled; every filed line is re-read; your squad is told |
+
+**Two uses, both free of scripting:**
+- **Relief:** clearing attention is *legitimate* play — file honestly, repair cameras, complete a
+  quota. The player learns that visibility to the regime is a currency they can spend down.
+- **Weaponisation:** high attention on a *rival warden* (by contradicting their record, or
+  reporting their conduct) discredits them before an inquiry. Act III politics.
+
+**Design guard:** attention must never be a hidden fail-state. The player can *infer* it from
+radio chatter density, drone presence and the tone of Overwatch's lines — and after Act II, from
+the Registry. Never a numeric meter on screen (same rule as Legitimacy).
+
+HYPOTHESIS: `filing_speed_percentile` may read as punishing careful players. Test at G1; if it
+does, replace that term with `unresolved_field_notes`.
+
 ## 9. Acceptance checks
 
 1. Running 10 shifts with a fixed seed and no player input produces a monotonically rising
@@ -179,6 +271,16 @@ the moral texture of Act II: the price of autonomy is transparency to the regime
 3. The Desk never produces the same archetype twice in 3 shifts (assert in test).
 4. Sim tick cost < 15 ms for 60 households on the reference machine.
 5. A materialised agent's papers match their household record (no impossible citizens).
+6. **Arbiter budgets hold for 50 consecutive simulated shifts** (≤2 armed, ≥1 quiet, no repeat
+   in 3, de-escalation offer above temperature 70).
+7. **Every director decision is traceable**: `debug:bus` shows candidates, scores and the chosen
+   reason. A director emitting no score data fails code review.
+8. **Oversight Attention never surprises:** a player who files honestly and completes quota sees
+   attention fall within 2 shifts, and can name why (cameras / honesty / quota).
+9. **The 12 Known cap holds**: at no point can the player have more than 12 named citizens in the
+   Known set; a materialised record promoted to Known demotes the oldest untouched one.
+10. **No nemesis drift**: a grudge changes disposition and encounter odds only; it never creates
+    a returning antagonist with authored traits. (Reviewed against `06-research/...§6`.)
 
 ## 10. Open questions
 
@@ -188,3 +290,12 @@ the moral texture of Act II: the price of autonomy is transparency to the regime
   your friend.)
 - Q3: Do we surface the fault-line vector to the player at all? (No — but the Case File should
   make the pattern visible in hindsight.)
+- Q4 (new, from research): does the 12-Known cap survive Act III, when the player may need to
+  reference more names? Options: raise to 16, or let the Case File *search* substitute for
+  memory. Leaning: raise to 16 and accept dilution as a cost of power.
+
+## 11. Research provenance
+
+Sections 2.1–2.2, 5, 6.1–6.2 and 8.1 are derived from `06-research/` and locked by ADR-0004.
+If you change them, update the research ledger's adopted/rejected table (`06-research/00-index.md`
+§2) so the trail stays intact.

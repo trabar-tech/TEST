@@ -67,11 +67,20 @@
     }
   ],
 
+  "_storylet_note": "Everything below is a STORYLET (ADR-0004): content + prerequisites + effects, drawn from a weighted deck. `requires` is a predicate over sim state; `effects` writes to the world; `references` lists prior-state dependencies (connective-tissue budget: >=40% of content must reference something).",
+
   "micro_events": [
     {
       "id": "me-0031",
       "title": "The queue dispute",
-      "weight": { "temperature": [0, 60], "time_of_day": ["morning"] },
+      "requires": {
+        "temperature": [0, 60],
+        "time_of_day": ["morning"],
+        "shift_min": 1
+      },
+      "references": [],
+      "deck": "beat_morning",
+      "weight": { "base": 1.0, "connective_bonus": 0.0 },
       "beats": [
         { "text": "An old woman is holding a place for a man who isn't here. Two people behind her are loud about it." }
       ],
@@ -80,7 +89,30 @@
         { "id": "cite", "label": "Cite the woman", "claim": "C", "legitimacy": -1, "standing": 0.5, "time": 15 },
         { "id": "detain", "label": "Detain the loud one", "claim": "D", "legitimacy": -2, "standing": 1, "time": 25 },
         { "id": "ignore", "label": "Walk on", "claim": "-", "legitimacy": 0, "standing": 0, "time": 0,
-          "note": "auto-filed by the audit if a camera saw you pass", "witness_gate": true }
+          "note": "auto-filed by the audit if a camera saw you pass", "witness_gate": true,
+          "effects": { "set_flag": "ignored_queue_dispute", "schedule_epilogue": "me-0031-epi" } }
+      ]
+    },
+    {
+      "id": "me-0031-epi",
+      "_type": "epilogue_storylet",
+      "title": "The woman from the queue",
+      "requires": {
+        "flags_any": ["ignored_queue_dispute", "cited_queue_woman"],
+        "shift_since_cause": [3, 6],
+        "known_set_has_room_or_evict": true
+      },
+      "references": ["me-0031"],
+      "deck": "street_epilogue",
+      "weight": { "base": 1.4, "connective_bonus": 0.6 },
+      "beats": [
+        { "text": "She is outside the ration office again. She has been holding that place for four days, for a man who is not coming back." },
+        { "text": "She recognises the mask. She does not look away." }
+      ],
+      "resolutions": [
+        { "id": "ask", "label": "Ask who he was", "claim": "-", "legitimacy": 2, "integrity_hint": true, "time": 60 },
+        { "id": "move_on", "label": "Move her on", "claim": "C", "legitimacy": -2, "standing": 0.5, "time": 10 },
+        { "id": "walk", "label": "Say nothing", "claim": "-", "legitimacy": 0, "integrity": -1, "time": 0 }
       ]
     }
   ],

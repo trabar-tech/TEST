@@ -20,8 +20,9 @@ Read this first, every session. It is the project's single status board.
 | SYS-TACT-01 | Tactical layer (RTwP, force continuum, breach) | `01-tactical-layer.md` | draft | 2 | design |
 | SYS-INSP-01 | Inspection & citizen cards | `02-inspection-and-record.md` §2 | draft | 1 | design |
 | SYS-REC-01 | The Record (report lines, Slack, audit) | `02-inspection-and-record.md` §3–5 | approved | 1 | design |
-| SYS-SIM-01 | Sector simulation (pop, households, temperature) | `03-simulation-and-directors.md` §2–3 | draft | 3 | design |
-| SYS-DIR-01 | Three directors + Arbiter | `03-simulation-and-directors.md` §4 | draft | 3 | design |
+| SYS-SIM-01 | Sector simulation (pop, households, temperature, 12-Known cap) | `03-simulation-and-directors.md` §2–4 | review | 3 | design |
+| SYS-DIR-01 | Three directors + Arbiter (storylet decks + pacing FSM) | `03-simulation-and-directors.md` §5–8 | **approved** (ADR-0004) | 3 | design |
+| SYS-STORY-01 | Storylet/deck runtime (prereqs, utility scoring, weighted draw, epilogues) | ADR-0004; `06-research/01-...§5` | approved | 3 | tech |
 | SYS-ECON-01 | Progression, requisition, household | `04-progression-economy.md` | draft | 2 | design |
 | SYS-UI-01 | Desk UI / report form / HUD | `02-inspection-and-record.md` §6 | draft | 1 | design+tech |
 | SYS-OVS-01 | OVERSEER expansion | `05-overwatch-expansion.md` | draft | post-1.0 | design |
@@ -51,13 +52,23 @@ Read this first, every session. It is the project's single status board.
               ▼             ▼              ▼
       ┌────────────┐ ┌────────────┐ ┌────────────┐
       │ SYS-DIR-01 │ │ SYS-ECON-01│ │ SYS-OVS-01 │
-      └────────────┘ └────────────┘ └────────────┘
+      └─────┬──────┘ └────────────┘ └────────────┘
+            │ uses
+            ▼
+      ┌──────────────────┐
+      │ SYS-STORY-01     │  (storylet deck runtime: prereqs → score → draw → effects)
+      │ + Arbiter FSM    │  (4-state pacing, hard budgets)
+      └──────────────────┘
 ```
 
 **Reading the graph:** SYS-REC-01 is the keystone. Every other system either *feeds* it
 (produces events that must be reported) or *consumes* it (directors read reports; economy reads
 Standing derived from audits; OVERSEER reads the whole archive). This is why the Record is
 built in Phase 1 and why its data shape is an ADR.
+
+SYS-STORY-01 is the *second* most reused piece: every director, plus micro-events, directives,
+family scenes and epilogue callbacks, is a storylet drawn from a deck. Build it once, as a
+library (ADR-0004).
 
 ## Interface contracts between systems
 
@@ -88,3 +99,13 @@ event bus, and the bus is the debugging surface (`debug:bus` overlay lists every
 4. **All randomness is seeded per shift** and stored in the save, so a shift can be replayed.
 5. **Every content item is data** (`content/*.json`), never hard-coded, because OVERSEER
    re-authoring depends on it.
+6. **No black-box directors.** Every systemic decision that affects the player emits its
+   candidates, scores and reason to `debug:bus` (`ADR-0004`, "Law of Small Directors").
+7. **Fairness doctrine.** No first-visit ambush, no untelegraphed audit punishment, and every
+   incident is solvable at force rung ≤2 with at most one recon token. Systemic games are
+   allowed to be hostile; they are not allowed to be *unfair* — that distinction is what makes
+   the hostility feel authored rather than arbitrary.
+8. **Borrow with a trail.** Any mechanism taken from prior art must have a verdict in
+   `06-research/00-index.md` §2 and, if architectural, an ADR.
+9. **No nemesis drift.** Memory is archival (what was written down), never dramaturgical (a
+   rival grown by encounters). See `06-research/01-director-ai-anatomy.md` §6.
