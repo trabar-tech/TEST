@@ -39,15 +39,18 @@ Legend: `[ ]` todo · `[~]` in progress · `[p]` playable · `[v]` verified · `
 Goal: a browser window that runs a deterministic tick loop and draws a top-down sector.
 No gameplay. This is the phase that gets skipped and shouldn't be.
 
+**Status: complete 2026-11-18 (1 session).** Invariants live in
+[`phases/01-phase-0-harness.md`](phases/01-phase-0-harness.md); proof lives in `tests/`.
+
 | ID | Task | Acceptance check |
 |---|---|---|
-| `[ ]` P0-T01 | Vite + TS + WebGL2 renderer skeleton; 0.0.0.0 bind, single HTML entry | page loads at preview URL, 60 fps empty grid |
-| `[ ]` P0-T02 | Fixed-timestep clock (60 Hz sim, interpolated render) + seedable RNG | replaying seed 42 twice yields identical state hash |
-| `[ ]` P0-T03 | ECS-lite entity store + event bus + `debug:bus` overlay | every system message visible in the overlay |
-| `[ ]` P0-T04 | Save/load to IndexedDB, versioned envelope | save → reload → state hash matches |
-| `[ ]` P0-T05 | Tilemap + navmesh + A* click-to-move for one pawn | click anywhere walkable, pawn paths around a wall |
-| `[ ]` P0-T06 | Timescale engine (1.0 / 0.15 / 0.35 / 0.0) with a debug slider | slider changes sim rate, render stays smooth |
-| `[ ]` P0-T07 | Content loader for `content/*.json` with schema validation | malformed JSON fails loudly with a file+field message |
+| `[v]` P0-T01 | Vite + TS + WebGL2 renderer skeleton; 0.0.0.0 bind, single HTML entry | page loads at preview URL, 60 fps empty grid |
+| `[v]` P0-T02 | Fixed-timestep clock (60 Hz sim, interpolated render) + seedable RNG | replaying seed 42 twice yields identical state hash |
+| `[v]` P0-T03 | ECS-lite entity store + event bus + `debug:bus` overlay | every system message visible in the overlay |
+| `[v]` P0-T04 | Save/load to IndexedDB, versioned envelope | save → reload → state hash matches |
+| `[v]` P0-T05 | Tilemap + navmesh + A* click-to-move for one pawn | click anywhere walkable, pawn paths around a wall; 40 paths < 2 ms |
+| `[v]` P0-T06 | Timescale engine (1.0 / 0.15 / 0.35 / 0.0) with a debug slider | slider changes sim rate, render stays smooth |
+| `[v]` P0-T07 | Content loader for `content/*.json` with schema validation | malformed JSON fails loudly with a file+field message |
 
 **Cut candidates:** P0-T03's overlay (keep the bus, drop the UI), P0-T04 (defer to Phase 1).
 

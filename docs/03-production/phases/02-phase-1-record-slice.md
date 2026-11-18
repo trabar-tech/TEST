@@ -31,10 +31,12 @@ consequence sheet; `SectorBelief` with one visible next-shift consequence; ~30 b
 
 ## 2. Entry criteria
 
-- [ ] Phase 0 exit checklist complete (especially determinism + save)
+- [x] Phase 0 exit checklist complete (especially determinism + save) — 2026-11-18
 - [ ] `SYS-REC-01` approved (it is) and `ADR-0002` locked
 - [ ] The citizen card's 6 fields and 3 checks chosen (they are, `SYS-REC-01` §2)
-- [ ] One 4-block map exists as JSON, with interiors that don't matter yet
+- [~] One 4-block map exists as JSON, with interiors that don't matter yet — **one block exists**
+      (`content/maps/kiln_row_block_a.json`, 28×20, one courtyard, one doorway). Phase 1 needs
+      three more and should treat the loader in `scripts/lib/load-content.ts` as the shape.
 
 ## 3. Exit criteria
 

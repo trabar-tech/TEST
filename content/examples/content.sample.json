@@ -100,7 +100,7 @@
       "requires": {
         "flags_any": ["ignored_queue_dispute", "cited_queue_woman"],
         "shift_since_cause": [3, 6],
-        "known_set_has_room_or_evict": true
+        "known_set_has_room": true
       },
       "references": ["me-0031"],
       "deck": "street_epilogue",
