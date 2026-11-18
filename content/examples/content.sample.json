@@ -1,0 +1,93 @@
+{
+  "$schema": "./_schema-note.json",
+  "_note": "Example content, not final tuning. Schema lives in src/core/content.ts (zod). Every field must be present; unknown fields fail validation loudly.",
+
+  "incidents": [
+    {
+      "id": "inc-014",
+      "archetype": "flat_breach",
+      "title": "Flat 14 — Unlicensed Printing",
+      "difficulty_band": [2, 4],
+      "fault_lines": ["brutality", "honesty", "family_pressure"],
+      "map_id": "map_tenement_row_a",
+      "params": {
+        "occupants": 3,
+        "armed": 1,
+        "third_party_present": true,
+        "doors": ["locked", "barred"],
+        "camera_in_range": ["cam:K4-2"]
+      },
+      "dispatch_text": "Sector 4. Block C. Report of unlicensed printing, flat fourteen. Occupants unknown. Compliance advised.",
+      "expected_report": {
+        "category": "incident",
+        "classification_choices": ["R", "NR", "D", "P"],
+        "likely_force_floor": 2
+      }
+    }
+  ],
+
+  "directives": [
+    {
+      "id": "dir-0180",
+      "type": "standing",
+      "text": "All citizens moving between blocks after 20:00 must present a curfew pass.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 1
+    },
+    {
+      "id": "dir-0197",
+      "type": "daily",
+      "text": "Effective 06:00: curfew pass checks are suspended. Visible patrol presence is required on all main thoroughfares.",
+      "quota": { "inspections": 40, "detentions": 8, "visible_patrol_minutes": 30 },
+      "contradicts": ["dir-0180"],
+      "audit_weight": 2,
+      "reward": { "standing": 2, "requisition": 1 },
+      "penalty": { "standing": -2, "review": 1 }
+    }
+  ],
+
+  "citizens": [
+    {
+      "id": "c-0221",
+      "archetype": "worker",
+      "name_seed": 221,
+      "temperament": "rehearsed",
+      "papers": {
+        "name": "M. Ostrow",
+        "district_stamp": "S4",
+        "ration_class": "C",
+        "work_permit": "laundry_2",
+        "curfew_pass": true,
+        "chip_serial": "C-4471-8"
+      },
+      "irregularity": { "field": "chip_serial", "kind": "wrong_class_digit", "severity": 1 },
+      "knowledge": ["cell_safehouse_hint"],
+      "routine": ["queue_ration", "work_laundry", "curfew_run_home"]
+    }
+  ],
+
+  "micro_events": [
+    {
+      "id": "me-0031",
+      "title": "The queue dispute",
+      "weight": { "temperature": [0, 60], "time_of_day": ["morning"] },
+      "beats": [
+        { "text": "An old woman is holding a place for a man who isn't here. Two people behind her are loud about it." }
+      ],
+      "resolutions": [
+        { "id": "mediate", "label": "Sort it out quietly", "claim": "-", "legitimacy": 1, "standing": 0, "time": 40 },
+        { "id": "cite", "label": "Cite the woman", "claim": "C", "legitimacy": -1, "standing": 0.5, "time": 15 },
+        { "id": "detain", "label": "Detain the loud one", "claim": "D", "legitimacy": -2, "standing": 1, "time": 25 },
+        { "id": "ignore", "label": "Walk on", "claim": "-", "legitimacy": 0, "standing": 0, "time": 0,
+          "note": "auto-filed by the audit if a camera saw you pass", "witness_gate": true }
+      ]
+    }
+  ],
+
+  "report_tags": [
+    "suspicious_conduct", "resisting", "armed", "crowd", "contraband",
+    "unlicensed_radio", "curfew_violation", "syndicate", "cell", "informant",
+    "property_vandalism", "insufficient_papers", "bribe_offered"
+  ]
+}

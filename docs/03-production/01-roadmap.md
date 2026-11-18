@@ -1,0 +1,187 @@
+---
+id: PROD-ROADMAP
+title: Roadmap — Phases, Tasks, Acceptance Checks, Cut List
+status: review
+owner: production
+depends_on: [PROD-METHOD, SYS-INDEX]
+consumed_by: [src/*]
+updated: 2026-11-18
+---
+
+# Roadmap
+
+**7 phases.** Each ends in a **playable** and (from Phase 1) a **gate**. Phases 0–4 are the
+project; 5 is polish/release; 6 is the expansion, gated by a prototype.
+
+Legend: `[ ]` todo · `[~]` in progress · `[p]` playable · `[v]` verified · `[x]` cut
+
+---
+
+## Phase 0 — Harness (2–4 sessions)
+
+Goal: a browser window that runs a deterministic tick loop and draws a top-down sector.
+No gameplay. This is the phase that gets skipped and shouldn't be.
+
+| ID | Task | Acceptance check |
+|---|---|---|
+| `[ ]` P0-T01 | Vite + TS + WebGL2 renderer skeleton; 0.0.0.0 bind, single HTML entry | page loads at preview URL, 60 fps empty grid |
+| `[ ]` P0-T02 | Fixed-timestep clock (60 Hz sim, interpolated render) + seedable RNG | replaying seed 42 twice yields identical state hash |
+| `[ ]` P0-T03 | ECS-lite entity store + event bus + `debug:bus` overlay | every system message visible in the overlay |
+| `[ ]` P0-T04 | Save/load to IndexedDB, versioned envelope | save → reload → state hash matches |
+| `[ ]` P0-T05 | Tilemap + navmesh + A* click-to-move for one pawn | click anywhere walkable, pawn paths around a wall |
+| `[ ]` P0-T06 | Timescale engine (1.0 / 0.15 / 0.35 / 0.0) with a debug slider | slider changes sim rate, render stays smooth |
+| `[ ]` P0-T07 | Content loader for `content/*.json` with schema validation | malformed JSON fails loudly with a file+field message |
+
+**Cut candidates:** P0-T03's overlay (keep the bus, drop the UI), P0-T04 (defer to Phase 1).
+
+---
+
+## Phase 1 — The Record vertical slice (5–8 sessions) ← **the most important phase**
+
+Goal: **one full shift** in grey boxes: walk, inspect 6 citizens, trigger 1 micro-event, file a
+form, get an audit. Then a human plays it and answers G0.
+
+| ID | Task | Acceptance check |
+|---|---|---|
+| `[ ]` P1-T01 | `ReportLine` schema + event log + serialisation (ADR-0002 shapes) | a hardcoded event → line → save round-trip, unit-tested |
+| `[ ]` P1-T02 | Beat mode: pawn walking, 6 citizens with routines, hover/interact | can walk the block, citizens keep 1 routine each |
+| `[ ]` P1-T03 | Citizen card UI: 6 fields, 3 checks, generated irregularities | a citizen with a bad serial is visually distinguishable via checks |
+| `[ ]` P1-T04 | Inspection conversation: temperament + 3 questions + outcome | catching a rehearsed liar feels *reasoned*, not pixel-hunted (playtest) |
+| `[ ]` P1-T05 | Desk form UI (1 page): stamps, steppers, tags, free text, exposure gutter | filing 5 lines takes < 90 s decisively; exposure always explainable |
+| `[ ]` P1-T06 | Audit engine: contradiction + witness + peer tests → stamped sheet | camera-observed lie is caught 100%; honest filing never surprises |
+| `[ ]` P1-T07 | `SectorBelief` write + a single visible consequence next shift | under-reporting resistance changes the next day's incident text |
+| `[ ]` P1-T08 | **Grey-box art pass + barks** (30 lines) so the slice can be *felt* | a tester can describe the regime's tone from the slice alone |
+
+**Gate G0:** *"Do I care about what I write?"* — 3 testers, 15 min each.
+**If fail:** do not start Phase 2. Redesign the Record; the GDD's §3.2 becomes the only doc that
+matters.
+
+**Cut candidates:** free text (ship tags-only), the third inspection question.
+
+---
+
+## Phase 2 — Tactical layer (6–9 sessions)
+
+Goal: a breach scene that is tense, legible, and *generates a report line you'd rather lie about*.
+Gate G1.
+
+| ID | Task | Acceptance check |
+|---|---|---|
+| `[ ]` P2-T01 | Door state machine + 8 entry types + noise events | each entry produces the documented noise radius in the log |
+| `[ ]` P2-T02 | Information gating: silhouettes, sound pings, one camera feed | you cannot see room contents without a source |
+| `[ ]` P2-T03 | Solo **Focus** mode (0.35×, 6 s / 9 s) | a 2-hostile room is survivable ≥50% without a squad |
+| `[ ]` P2-T04 | Order queue (8 verbs, 4 deep) + squad AI literal execution | stack→ram→clear executes unattended; contact cancels queue |
+| `[ ]` P2-T05 | Force continuum: 5 rungs, authorisation radio, wound model | every rung-2+ action writes exactly 1 line with the correct tool tag |
+| `[ ]` P2-T06 | Force ratchet: `force_index` persists and raises next shift's starting rung | 3 aggressive shifts measurably raise incident difficulty |
+| `[ ]` P2-T07 | Crowd mood graph (12→40 agents) with heat ring | 34 agents + 4 officers at 60 fps on reference hardware |
+| `[ ]` P2-T08 | Incident → report integration ("clear is a claim") | a mis-cleared room creates a wrong line that an audit can blow open |
+| `[ ]` P2-T09 | Squad comms: hotkey orders, voice ack, **Flow** bonus | 3 orders in 5 s unpaused grants Flow; paused orders lag 0.4 s |
+
+**Gate G1:** *"Is the pause/slow-mo fun — and is the paperwork still the point?"*
+**If fail:** cut one of {Focus, Pause} and rebalance; do not add systems.
+
+---
+
+## Phase 3 — Simulation, directors, campaign shape (6–9 sessions)
+
+Goal: 6 shifts that feel like a place with a memory. Gate G2.
+
+| ID | Task | Acceptance check |
+|---|---|---|
+| `[ ]` P3-T01 | Household records (60) + per-shift sim tick < 15 ms | 10 no-input shifts produce a coherent rising-tension history |
+| `[ ]` P3-T02 | Agent **materialisation** from households (deterministic) | a person you arrested appears as a named relative later |
+| `[ ]` P3-T03 | Temperature formula + colour grade + barks driven by it | players can predict "the street is worse today" without a meter |
+| `[ ]` P3-T04 | The **Cell** plan engine (3-shift plans, informant-discoverable) | a plan can be discovered and prevented tactically |
+| `[ ]` P3-T05 | The **Desk** fault-line deck weighting + Arbiter budgets | no archetype repeats in 3 shifts; ≥1 quiet scene/shift |
+| `[ ]` P3-T06 | The **Eye** escalation ladder (drone → checkpoint → forced audit) | honesty buys autonomy; the trade is legible |
+| `[ ]` P3-T07 | 60 micro-events authored + weighted | a shift's Beat has ≥3 distinct encounters |
+| `[ ]` P3-T08 | Directive system with contradiction graph (80 directives) | a daily directive can contradict a standing one and both are enforceable |
+
+**Gate G2:** *"Does the city feel alive and unfair in the right way?"*
+**If fail:** cut one faction (the Congregation is the easiest cut), keep the Cell + Eye.
+
+---
+
+## Phase 4 — Economy, family, campaign, endings (6–8 sessions)
+
+| ID | Task | Acceptance check |
+|---|---|---|
+| `[ ]` P4-T01 | Rank/quota/perk/requisition systems | promotion always adds a verb, never just a number |
+| `[ ]` P4-T02 | Household ledger, debt tree, Syndicate thread | negative FP recoverable within 2 shifts via ≥1 path |
+| `[ ]` P4-T03 | Family scenes (reactive, not nagging) | every family scene references *today's* events |
+| `[ ]` P4-T04 | 15-shift campaign structure + act transitions | can be played start to finish with no dead ends |
+| `[ ]` P4-T05 | 5 endings + the Case File browser (searchable archive) | endings determined by data; verified by test, not by eyeball |
+| `[ ]` P4-T06 | Compliance Review modifier + purge/hard-fail rules | 3 reviews in a row ends the run, with a legible reason |
+
+**Gate G3:** *"Would I finish this twice?"*
+**If fail:** cut campaign to 10 shifts; keep Continuing Service as the long tail.
+
+---
+
+## Phase 5 — Polish, performance, release (4–6 sessions)
+
+| ID | Task | Acceptance check |
+|---|---|---|
+| `[ ]` P5-T01 | Performance pass: draw calls, atlas, object pools | 60 fps @1080p, integrated GPU; < 250 MB payload |
+| `[ ]` P5-T02 | Accessibility: keyboard-only Desk, 125% font, colourblind coding | full playthrough without a mouse on the Desk |
+| `[ ]` P5-T03 | Onboarding: diegetic tutorial (a superior walks you through shift 1) | first honest report filed in < 2 min, no manual |
+| `[ ]` P5-T04 | Audio pass: ducking during inspections, radio barks | inspection silence is audible (test: mute music check) |
+| `[ ]` P5-T05 | Save migration + "New Game+ Known Quantity" | previous Case File read aloud as evidence |
+| `[ ]` P5-T06 | Release build, hosting, crash-free session log | 30-min session, no console errors |
+
+**Release:** browser build (static host), 1.0.
+
+---
+
+## Phase 6 — *OVERSEER* expansion (gated, 10–14 sessions)
+
+**Gate G4 first:** `[ ]` P6-T01 **Frozen watch-cycle prototype** — one sector, 3 feeds, 2 squads,
+4 anomaly pins, no art, 20 minutes. *"Is the attention economy tense?"*
+If no → expansion is cut and the time goes into Continuing Service. Record the decision.
+
+| ID | Task | Acceptance check |
+|---|---|---|
+| `[ ]` P6-T02 | Headless tactical resolution (simulate a dispatched scene in < 2 s) | squad dispatch resolves without rendering |
+| `[ ]` P6-T03 | City map layer + camera tasking + 3-feed attention cap | neglect is attributable in the after-action report |
+| `[ ]` P6-T04 | Anomaly triage with source-credibility from the Case File | a lying warden's reports are measurably less credible |
+| `[ ]` P6-T05 | Audit tool (raises compliance, degrades that squad's report quality) | the trade is measurable within 3 cycles |
+| `[ ]` P6-T06 | Macro levers: curfew, ration cut, sweep, amnesty (reversible ratchets) | amnesty can walk a ratchet back down over 2 cycles |
+| `[ ]` P6-T07 | Case File import as ground truth (defend your old lies) | a base-game lie surfaces as an Act II obligation |
+| `[ ]` P6-T08 | Manual control bridge with Micromanagement flag | manual control never strictly optimal across 3 uses |
+| `[ ]` P6-T09 | Act III self-inquiry in the Night Desk UI + 4 endings | all 4 endings reachable purely from accumulated data |
+
+---
+
+## Cut List (recorded, not shameful)
+
+Pre-authorised cuts, in the order they'd be taken if the schedule slips:
+
+| # | Cut | Cost | When it's acceptable |
+|---|---|---|---|
+| 1 | The Congregation faction | loses religious-community texture | any slip |
+| 2 | Free-text on reports (tags only) | loses the best lines, keeps mechanics | if localisation or typing is a burden |
+| 3 | Crowds >20 agents | Act II loses scale, keeps choice | if perf fails at G2 |
+| 4 | Squad >1 officer | weakens the Door-Kickers layer; Focus carries it | if P2-T04 slips |
+| 5 | Campaign from 15 → 10 shifts | tighter pacing, fewer directives | G3 fail |
+| 6 | OVERSEER expansion | the game is complete without it | any time; it's post-1.0 |
+| 7 | Metre-perfect art (goes abstract) | cheaper, more legible, less atmospheric | if art pipeline stalls |
+
+**Not cuttable (project-killing if removed):** the Record, the audit, the exposure gutter, the
+force ratchet, the quota/temperature spiral.
+
+---
+
+## Critical path
+
+```
+P0 harness ──▶ P1 RECORD ──[G0]──▶ P2 tactical ──[G1]──▶ P3 sim/directors
+                   │                                          │
+                   └──────────── feeds SectorBelief ───────────┘
+                                                                  ▼
+                                                          P4 econ/campaign ──[G3]──▶ P5 release
+                                                                                       │
+                                                                              P6 OVERSEER [G4]
+```
+
+The single riskiest dependency: **P1 must not be shortened.** Everything either feeds the Record
+or reads it. A weak Record makes every later system decorative.
