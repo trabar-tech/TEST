@@ -84,11 +84,12 @@ beyond a debug panel. If it feels like a game by the end of Phase 0, something w
 ## 3. Exit checklist — all green 2026-11-18
 
 - [x] `npm run dev` serves on `0.0.0.0:5173`
-- [x] `npm run verify` green: **113 tests** — determinism, save round-trip, migration, content,
-      nav, body collision, timescale, and the sim end-to-end
+- [x] `npm run verify` green: **118 tests** — determinism, save round-trip, migration, content,
+      nav, body collision, timescale, camera math, and the sim end-to-end
 - [x] Click moves the pawn around a wall at 60 fps; body never overlaps a wall tile
 - [x] Save → reload → continue reaches the identical state hash, including a half-walked route
 - [x] `debug:bus` shows every message with tick + type, filterable by system, `` ` `` to hide
+- [x] Clicking moves the pawn to where it was clicked, on both renderers (one shared camera)
 - [x] `npm run check:boundaries` fails on `Math.random` outside `core/rng.ts`, on Pixi/DOM in
       `core/`, on `core → render|ui` imports, and on `truth` inside an authored claim
 - [x] Malformed content fails at boot with file + field, and offers a way forward
@@ -99,6 +100,7 @@ beyond a debug panel. If it feels like a game by the end of Phase 0, something w
 |---|---|---|
 | IndexedDB wrapper inside `core/save.ts` | `SaveStorage` interface in core, adapter in `src/platform/storage.ts` | The boundary check was right: `core/` may not touch `indexedDB`. Falls back to localStorage, then memory, and says so. |
 | "migrations/ folder with a no-op v1→v2" | real v1→v2 (record move + rng table) | The rng table is not optional; see P0-T02. |
+| WebGL only | Pixi 8 with a Canvas2D fallback, named in the debug panel | This is a browser game: locked-down laptops, VMs and sandboxed iframes frequently have no WebGL, and a WebGL-only build shows a dead boot screen there. The fallback shares the camera and the sim with the Pixi path. |
 | 2–4 sessions | 1 session | The docs had already settled the hard questions, so this was transcription plus debug. **Do not read that as a schedule forecast for Phase 1**, whose unknowns are design, not plumbing. |
 
 ## 5. Exit note

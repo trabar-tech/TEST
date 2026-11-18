@@ -26,6 +26,8 @@ const MODE_KEYS: Array<{ key: string; mode: TimeMode; label: string }> = [
 export interface OverlayHandle {
   tick(): void;
   setFps(fps: number): void;
+  /** which renderer is live, so a silent fallback is visible */
+  setRenderer(name: string): void;
   flash(message: string, kind?: 'ok' | 'bad'): void;
   destroy(): void;
 }
@@ -135,6 +137,8 @@ export function createDebugOverlay(sim: Sim, host: HTMLElement): OverlayHandle {
 
   let visible = true;
   let fps = 0;
+  /** set by main.ts once the renderer is known */
+  let renderer = '?';
   let toastTimer: number | undefined;
 
   function render(): void {
@@ -180,6 +184,7 @@ export function createDebugOverlay(sim: Sim, host: HTMLElement): OverlayHandle {
       `timescale ${clock.timescale.toFixed(2)}×`,
       `fps       ${fps.toFixed(0)} (${sim.lastSteps} step${sim.lastSteps === 1 ? '' : 's'}/frame)`,
       `seed      ${sim.state.seed}  shift ${sim.state.shift}`,
+      `renderer  ${renderer}`,
       `orders    ${sim.isMoving ? `${sim.remainingWaypoints} wp left` : 'idle'}`,
     ].join('\n');
   }
@@ -217,6 +222,9 @@ export function createDebugOverlay(sim: Sim, host: HTMLElement): OverlayHandle {
     tick,
     setFps(v) {
       fps = v;
+    },
+    setRenderer(name) {
+      renderer = name;
     },
     flash,
     destroy() {

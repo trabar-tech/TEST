@@ -9,6 +9,7 @@
 import { Application, Container, Graphics, Text } from 'pixi.js';
 import type { Sim } from '@systems/sim';
 import type { Vec2 } from '@core/nav';
+import { fitCamera, screenToWorld, type Camera } from './camera';
 
 const COLORS = {
   floor: 0x1b1f24,
@@ -24,9 +25,13 @@ const COLORS = {
 };
 
 export interface SceneHandle {
+  /** which renderer is live; shown in the debug panel so a silent fallback is visible */
+  readonly backend: 'webgl' | 'canvas2d';
   resize(width: number, height: number): void;
   /** draw one frame from current sim state */
   draw(sim: Sim, opts: { cursor: Vec2 | null; cursorValid: boolean }): void;
+  /** viewport CSS pixel → world units, using the live camera */
+  toWorld(clientX: number, clientY: number): Vec2;
   destroy(): void;
 }
 
@@ -80,19 +85,20 @@ export async function createScene(sim: Sim, host: HTMLElement): Promise<SceneHan
     }
   }
 
-  /* camera: fit the map, keep the whole block visible, never letterbox-crop */
-  let scale = 1;
-  function fit(width: number, height: number): void {
-    const worldW = map.width * t;
-    const worldH = map.height * t;
-    scale = Math.max(0.35, Math.min(width / worldW, height / worldH) * 0.94);
-    world.scale.set(scale);
-    world.position.set((width - worldW * scale) / 2, (height - worldH * scale) / 2);
-  }
+  let cam: Camera = fitCamera(map, host.clientWidth, host.clientHeight);
 
   return {
+    backend: 'webgl' as const,
+
     resize(width, height) {
-      fit(width, height);
+      cam = fitCamera(map, width, height);
+      world.scale.set(cam.scale);
+      world.position.set(cam.ox, cam.oy);
+    },
+
+    toWorld(clientX, clientY) {
+      const rect = app.canvas.getBoundingClientRect();
+      return screenToWorld(cam, clientX - rect.left, clientY - rect.top);
     },
 
     draw(current, opts) {

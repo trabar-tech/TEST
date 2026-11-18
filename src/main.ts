@@ -18,7 +18,8 @@ import { SaveError, createSaveService } from '@core/save';
 import { createBrowserStorage } from './platform/storage';
 import { loadBundle, mapJsonToDef, type MapJson } from '../scripts/lib/load-content';
 import { Sim } from '@systems/sim';
-import { createScene } from '@render/scene';
+import { createScene, type SceneHandle } from '@render/scene';
+import { createFallbackScene } from '@render/fallback';
 import { createDebugOverlay } from '@ui/debug-overlay';
 
 const boot = document.getElementById('boot')!;
@@ -72,31 +73,30 @@ async function start(): Promise<void> {
   });
   sim.bus.emit('save:storage', { kind });
 
-  const scene = await createScene(sim, host);
+  /* A WebGL failure must not be a dead boot screen: fall back to Canvas2D and
+     say so in the panel, because the player's next bug report should not read
+     "black rectangle". */
+  let scene: SceneHandle;
+  let backendWarning: string | null = null;
+  try {
+    scene = await createScene(sim, host);
+  } catch (e) {
+    console.warn('webgl unavailable, using canvas2d', e);
+    scene = createFallbackScene(sim, host);
+    backendWarning = 'WebGL unavailable — running the Canvas2D fallback renderer.';
+  }
   const overlay = createDebugOverlay(sim, host);
-  sim.bus.emit('sim:boot', { mode: 'debug', saving: kind });
+  sim.bus.emit('sim:boot', { mode: 'debug', saving: kind, renderer: scene.backend });
+  overlay.setRenderer(scene.backend);
+  if (scene.backend === 'canvas2d') sim.bus.emit('render:fallback', { reason: 'webgl_init_failed' });
 
   /* ---------------------------------------------------------------- input */
   let cursor: Vec2 | null = null;
   let cursorValid = true;
 
+  /** the renderer owns the camera, so cursor and pawn can never desync */
   function toWorld(clientX: number, clientY: number): Vec2 {
-    // the scene fits the map with a uniform scale and centres it; invert that
-    const canvas = host.querySelector('canvas')!;
-    const rect = canvas.getBoundingClientRect();
-    const { map: m } = sim;
-    const worldW = m.width * m.tileSize;
-    const worldH = m.height * m.tileSize;
-    const scale = Math.max(
-      0.35,
-      Math.min(rect.width / worldW, rect.height / worldH) * 0.94,
-    );
-    const ox = (rect.width - worldW * scale) / 2;
-    const oy = (rect.height - worldH * scale) / 2;
-    return {
-      x: (clientX - rect.left - ox) / scale,
-      y: (clientY - rect.top - oy) / scale,
-    };
+    return scene.toWorld(clientX, clientY);
   }
 
   host.addEventListener('pointermove', (e) => {
@@ -177,9 +177,6 @@ async function start(): Promise<void> {
   }
 
   function onResize(): void {
-    const canvas = host.querySelector('canvas');
-    if (!canvas) return;
-    void canvas;
     scene.resize(host.clientWidth, host.clientHeight);
     drawScene();
   }
@@ -193,6 +190,7 @@ async function start(): Promise<void> {
   requestAnimationFrame(frame);
 
   if (warning) overlay.flash(warning, 'bad');
+  else if (backendWarning) overlay.flash(backendWarning, 'bad');
   else if (kind === 'localstorage') overlay.flash('indexeddb unavailable — using localStorage');
 
   // dev-only handle for poking at the sim from the console

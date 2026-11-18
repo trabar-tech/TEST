@@ -40,7 +40,7 @@ build wins and the doc is fixed in the same session. Full conventions:
 ```bash
 npm install
 npm run dev        # http://localhost:5173 — click to walk, 1/2/3/4 for timescale, ` for the debug panel
-npm run verify     # typecheck + 113 tests (determinism, saves, nav, timescale, content)
+npm run verify     # typecheck + 118 tests (determinism, saves, nav, timescale, content)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
