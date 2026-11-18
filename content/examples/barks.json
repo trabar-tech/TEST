@@ -1,0 +1,37 @@
+{
+  "_note": "P1-T08. Thirty lines of regime voice. No audio assets: the game ships as one HTML file with no network, so 'audio' is text the player hears in their head plus a loudspeaker you can read. When real audio exists, these are the lines to record.",
+  "_rules": [
+    "Never say: evil, hero, tyrant, freedom fighters, bad guys. The Directorate does not think of itself as any of those.",
+    "Bureaucratic register: passive voice, procedure as reassurance, 'we' meaning the building.",
+    "Threats are adminstrative, never personal."
+  ],
+  "loudspeaker": [
+    "The ration line opens in eleven minutes. Do not form more than one line.",
+    "Curfew pass checks are suspended for the morning period. They resume at 20:00.",
+    "Sector command reminds residents that silence is not evidence.",
+    "Anyone who has had their papers checked this week must have them checked again.",
+    "The east gate is closed to pedestrians. The east gate is not closed to authorised movement.",
+    "A child between the ages of six and fourteen must be accompanied at all times, and is not required anywhere."
+  ],
+  "radio": [
+    "Kiln Row, this is Sector Four control. Mount your patrol.",
+    "Warden, compliance is not an opinion. File what you saw.",
+    "Your quota has been counted. It is short.",
+    "Sector Four has a quiet street. The Directorate likes quiet streets. Continue.",
+    "A patrol that reports nothing is a patrol that noticed nothing.",
+    "Warden. You are being assessed on the basis of tonight, not this morning."
+  ],
+  "ambient": [
+    "A tram stops two streets away. It does not start again.",
+    "Someone upstairs drags a chair across the floor, twice, and then stops as if caught.",
+    "A loudspeaker clearing its throat before it decides to say nothing.",
+    "Two men arguing in another language about a door.",
+    "A printer working through a long job, undisturbed.",
+    "The blue of a surveillance lamp moving across a wall as it pans."
+  ],
+  "witness": [
+    "I have seen him.",
+    "I did not see anything. I want to say we both did not see anything.",
+    "Do you need my name, or do you already have my name?"
+  ]
+}

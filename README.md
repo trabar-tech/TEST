@@ -7,7 +7,8 @@ builds the world.
 > **Thesis:** you don't choose what to do — you choose what gets *recorded*, and the city is
 > built out of records.
 
-**Status:** Phase 0 (harness) complete — a deterministic empty sector in the browser, no gameplay yet.
+**Status:** Phase 1 (The Record) built — one full shift: walk Kiln Row, inspect six citizens, file
+the docket, get audited. Gate G0 (three untrained testers) has not been run.
 **Target:** single-player · PC · browser-first (WebGL2) · keyboard + mouse.
 
 ## Start here
@@ -39,15 +40,18 @@ build wins and the doc is fixed in the same session. Full conventions:
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 — click to walk, 1/2/3/4 for timescale, ` for the debug panel
-npm run verify     # typecheck + 118 tests (determinism, saves, nav, timescale, content)
+npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
+                   # E opens the desk early, C opens the case file, 1-4 timescale, ` diagnostics
+npm run verify     # typecheck + 223 tests (determinism, saves, Record, audit, UI, playthrough)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
 
-What exists today is the harness, deliberately: a fixed 60 Hz sim, seeded RNG with
-save-carried stream positions, an ECS-lite world, A* with body-radius collision, a versioned
-save envelope, and a validated content pipeline. Phase 1 builds the Record on top of it.
+What exists today is one complete shift. The harness underneath it: a fixed 60 Hz sim, seeded RNG
+with save-carried stream positions, an ECS-lite world, A* with body-radius collision, a versioned
+save envelope. On top of that, the thing the game is actually about: **the city is simulated from
+what you wrote, not from what happened.** The audit catches what the exposure gutter warned you
+about, and silence is filed as a hostile claim.
 
 ## Content
 

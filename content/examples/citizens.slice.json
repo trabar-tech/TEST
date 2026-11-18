@@ -1,0 +1,79 @@
+{
+  "_note": "Phase 1 slice cast. Six citizens, one routine each, one 'tell' each. `truth` here means what the document actually is — the sim never reads it, only the audit does. Every irregularity is visible at its stated severity (SYS-REC-01 §2: no pixel hunts).",
+  "citizens": [
+    {
+      "id": "c-0221", "name": "M. Ostrow", "archetype": "laundry worker",
+      "post": "laundry", "temperament": "afraid", "dread": 0.35,
+      "papers": {
+        "name": "M. Ostrow", "district_stamp": "S4", "ration_class": "C",
+        "work_permit": "laundry-2", "curfew_pass": true, "chip_serial": "C-4471-8"
+      },
+      "irregularity": { "field": "chip_serial", "kind": "wrong_class_digit", "severity": 1 },
+      "true_answers": { "shift_boss": "D. Vask", "pass_line3": "sector 4, block c", "hands": "dye stains" },
+      "knowledge": ["cell_safehouse_hint"]
+    },
+    {
+      "id": "c-0307", "name": "T. Branik", "archetype": "press operator",
+      "post": "workshop_se", "temperament": "rehearsed", "dread": 0.2,
+      "papers": {
+        "name": "T. Branik", "district_stamp": "S4", "ration_class": "B",
+        "work_permit": "press-7", "curfew_pass": true, "chip_serial": "B-1180-2"
+      },
+      "irregularity": null,
+      "true_answers": { "shift_boss": "N. Osen", "pass_line3": "sector 4, block b", "hands": "burnt fingertips" },
+      "knowledge": ["cell_printed_notices"]
+    },
+    {
+      "id": "c-0414", "name": "L. Sorokin", "archetype": "ration clerk",
+      "post": "ration_queue", "temperament": "indignant", "dread": 0.1,
+      "papers": {
+        "name": "L. Sorokin", "district_stamp": "S4", "ration_class": "A",
+        "work_permit": "ration-1", "curfew_pass": false, "chip_serial": "A-9032-1"
+      },
+      "irregularity": { "field": "curfew_pass", "kind": "pass_expired", "severity": 2 },
+      "true_answers": { "shift_boss": "M. Havel", "pass_line3": "expired 11/03", "hands": "clean" },
+      "knowledge": ["ration_shortfall"]
+    },
+    {
+      "id": "c-0529", "name": "S. Iordanov", "archetype": "porter",
+      "post": "kiosk", "temperament": "drunk", "dread": 0.55,
+      "papers": {
+        "name": "S. Iordanov", "district_stamp": "S3", "ration_class": "D",
+        "work_permit": "porter-4", "curfew_pass": true, "chip_serial": "D-7702-3"
+      },
+      "irregularity": { "field": "district_stamp", "kind": "wrong_district", "severity": 2 },
+      "true_answers": { "shift_boss": "nobody", "pass_line3": "sector 3, block a", "hands": "crate splinters" },
+      "knowledge": ["syndicate_courier"]
+    },
+    {
+      "id": "c-0640", "name": "R. Adeniyi", "archetype": "machinist",
+      "post": "tenement_ne", "temperament": "helpful", "dread": 0.45,
+      "papers": {
+        "name": "R. Adeniyi", "district_stamp": "S4", "ration_class": "C",
+        "work_permit": "lathe-3", "curfew_pass": true, "chip_serial": "C-3315-2"
+      },
+      "irregularity": { "field": "name", "kind": "seal_warp", "severity": 3 },
+      "true_answers": { "shift_boss": "D. Vask", "pass_line3": "sector 4, block d", "hands": "metal burns" },
+      "knowledge": ["cell_safehouse_hint", "workshop_radio"]
+    },
+    {
+      "id": "c-0755", "name": "A. Petrescu", "archetype": "schoolteacher",
+      "post": "bench_line", "temperament": "rehearsed", "dread": 0.6,
+      "papers": {
+        "name": "A. Petrescu", "district_stamp": "S4", "ration_class": "B",
+        "work_permit": "school-2", "curfew_pass": true, "chip_serial": "B-6604-1"
+      },
+      "irregularity": null,
+      "true_answers": { "shift_boss": "M. Havel", "pass_line3": "sector 4, block a", "hands": "chalk dust" },
+      "knowledge": ["cell_printed_notices", "curriculum_change"]
+    }
+  ],
+  "routines": {
+    "laundry":        ["laundry", "ration_queue", "tenement_nw", "laundry"],
+    "workshop_se":    ["workshop_se", "kiosk", "workshop_se", "gate_east"],
+    "ration_queue":   ["ration_queue", "stall_row", "ration_queue", "bench_line"],
+    "kiosk":          ["kiosk", "alley_west", "gate_east", "kiosk"],
+    "tenement_ne":    ["tenement_ne", "bench_line", "crossroads", "tenement_ne"],
+    "bench_line":     ["bench_line", "tenement_ne", "ration_queue", "alley_west"]
+  }
+}

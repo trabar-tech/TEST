@@ -147,6 +147,50 @@ export const DirectiveSchema = z.object({
   penalty: z.record(z.number()).optional(),
 });
 
+/* -------------------------------------------------- authored cast (Phase 1) */
+
+/**
+ * The slice cast is *authored*, not procedurally named, so it does not use
+ * `CitizenSchema` (which carries `name_seed` for Phase 3's generator). Splitting
+ * the two schemas keeps the generator's contract strict without forcing the
+ * hand-written cast to invent fields it does not have.
+ */
+export const AuthoredCitizenSchema = z
+  .object({
+    id: z.string().regex(/^c-\d{4}$/, 'citizen ids look like c-0221'),
+    name: z.string().min(1),
+    archetype: z.string().min(1),
+    post: z.string().min(1),
+    temperament: z.enum(['afraid', 'indignant', 'rehearsed', 'drunk', 'helpful']),
+    dread: z.number().min(0).max(1),
+    papers: PapersSchema,
+    irregularity: IrregularitySchema.nullable(),
+    true_answers: z.record(z.string()),
+    knowledge: z.array(z.string()).default([]),
+  })
+  .strict();
+
+export const AuthoredCastSchema = z
+  .object({
+    citizens: z.array(AuthoredCitizenSchema).min(1),
+    routines: z.record(z.array(z.string().min(1)).min(2)),
+    /** authoring note; ignored by the loader, kept out of the runtime type */
+    _note: z.string().optional(),
+  })
+  .strict();
+
+export type AuthoredCast = z.infer<typeof AuthoredCastSchema>;
+
+/** Bark sets are tone content: validate their shape, not their poetry. */
+export const BarksSchema = z
+  .object({
+    loudspeaker: z.array(z.string().min(8)).min(1),
+    radio: z.array(z.string().min(8)).min(1),
+    ambient: z.array(z.string().min(8)).min(1),
+    witness: z.array(z.string().min(4)).min(1),
+  })
+  .passthrough();
+
 export const ContentBundleSchema = z.object({
   incidents: z.array(IncidentSchema).default([]),
   directives: z.array(DirectiveSchema).default([]),

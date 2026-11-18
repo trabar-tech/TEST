@@ -11,8 +11,17 @@
  */
 
 import type { EventBus, LoggedEvent } from '@core/bus';
-import type { Sim } from '@systems/sim';
 import type { TimeMode } from '@core/clock';
+
+/** What the debug panel needs. Kept structural so any running sim qualifies. */
+export interface DebugSource {
+  bus: EventBus;
+  clock: { tick: number; simSeconds: number; mode: TimeMode; pendingMode: TimeMode; timescale: number };
+  state: { seed: number; shift: number };
+  lastStepCount: number;
+  isMoving: boolean;
+  setMode(mode: TimeMode): void;
+}
 
 const SANS = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
@@ -32,7 +41,7 @@ export interface OverlayHandle {
   destroy(): void;
 }
 
-export function createDebugOverlay(sim: Sim, host: HTMLElement): OverlayHandle {
+export function createDebugOverlay(sim: DebugSource, host: HTMLElement): OverlayHandle {
   const root = document.createElement('div');
   root.style.cssText = [
     'position:absolute',
@@ -182,10 +191,10 @@ export function createDebugOverlay(sim: Sim, host: HTMLElement): OverlayHandle {
       `sim time  ${formatSeconds(clock.simSeconds)}`,
       `mode      ${mode}`,
       `timescale ${clock.timescale.toFixed(2)}×`,
-      `fps       ${fps.toFixed(0)} (${sim.lastSteps} step${sim.lastSteps === 1 ? '' : 's'}/frame)`,
+      `fps       ${fps.toFixed(0)} (${sim.lastStepCount} step${sim.lastStepCount === 1 ? '' : 's'}/frame)`,
       `seed      ${sim.state.seed}  shift ${sim.state.shift}`,
       `renderer  ${renderer}`,
-      `orders    ${sim.isMoving ? `${sim.remainingWaypoints} wp left` : 'idle'}`,
+      `orders    ${sim.isMoving ? 'walking' : 'standing'}`,
     ].join('\n');
   }
 

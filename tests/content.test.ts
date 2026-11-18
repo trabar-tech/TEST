@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 import {
+  AuthoredCastSchema,
+  BarksSchema,
   ContentError,
   findDirectiveCycles,
   formatIssues,
@@ -109,6 +111,47 @@ describe('content indexing', () => {
     expect(() => {
       (loaded.bundle.micro_events[0] as { title: string }).title = 'hacked';
     }).toThrow();
+  });
+});
+
+describe('authored content shapes', () => {
+  it('validates the authored cast and its routines', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(__dirname, '../content/examples/citizens.slice.json'), 'utf8'),
+    ) as Record<string, any>;
+    const parsed = AuthoredCastSchema.safeParse(raw);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.citizens).toHaveLength(6);
+    // every citizen stands somewhere their routine visits
+    for (const c of parsed.data.citizens) {
+      expect(parsed.data.routines[c.post], c.id).toBeDefined();
+    }
+  });
+
+  it('rejects a citizen id that is not c-NNNN', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(__dirname, '../content/examples/citizens.slice.json'), 'utf8'),
+    ) as Record<string, any>;
+    raw.citizens[0].id = 'citizen-1';
+    const parsed = AuthoredCastSchema.safeParse(raw);
+    expect(parsed.success).toBe(false);
+  });
+
+  it('rejects an unknown temperament', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(__dirname, '../content/examples/citizens.slice.json'), 'utf8'),
+    ) as Record<string, any>;
+    raw.citizens[0].temperament = 'smug';
+    expect(AuthoredCastSchema.safeParse(raw).success).toBe(false);
+  });
+
+  it('validates the bark set and demands more than one line per pool', () => {
+    const raw = JSON.parse(
+      readFileSync(resolve(__dirname, '../content/examples/barks.json'), 'utf8'),
+    ) as Record<string, any>;
+    expect(BarksSchema.safeParse(raw).success).toBe(true);
+    expect(BarksSchema.safeParse({ ...raw, radio: [] }).success).toBe(false);
   });
 });
 

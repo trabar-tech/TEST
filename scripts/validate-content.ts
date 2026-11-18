@@ -12,7 +12,14 @@
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { ContentError, ContentVersion, type LoadedContent } from '@core/content';
+import {
+  AuthoredCastSchema,
+  BarksSchema,
+  ContentError,
+  ContentVersion,
+  formatIssues,
+  type LoadedContent,
+} from '@core/content';
 import { mapJsonToDef, loadBundle, type MapJson } from './lib/load-content';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
@@ -62,8 +69,42 @@ for (const file of contentFiles) {
     fail(`${rel} — not valid JSON (${(e as Error).message})`);
     continue;
   }
+  const shape = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+
+  // bark sets: tone content, validated for shape
+  if ('loudspeaker' in shape) {
+    const parsed = BarksSchema.safeParse(raw);
+    if (!parsed.success) {
+      for (const issue of formatIssues(parsed.error.issues)) fail(`${rel} — ${issue.path}: ${issue.message}`);
+    } else {
+      const lines =
+        parsed.data.loudspeaker.length + parsed.data.radio.length + parsed.data.ambient.length + parsed.data.witness.length;
+      console.log(`  · ${rel} — ${lines} lines of voice`);
+    }
+    continue;
+  }
+
+  // an authored cast: citizens + routines
+  if ('routines' in shape) {
+    const parsed = AuthoredCastSchema.safeParse(raw);
+    if (!parsed.success) {
+      for (const issue of formatIssues(parsed.error.issues)) fail(`${rel} — ${issue.path}: ${issue.message}`);
+    } else {
+      const ids = new Set<string>();
+      for (const c of parsed.data.citizens) {
+        if (ids.has(c.id)) fail(`${rel} — duplicate citizen id ${c.id}`);
+        ids.add(c.id);
+        if (!(c.post in parsed.data.routines)) {
+          fail(`${rel} — ${c.id} stands at post "${c.post}" but has no routine for it`);
+        }
+      }
+      console.log(`  · ${rel} — ${parsed.data.citizens.length} citizens, ${Object.keys(parsed.data.routines).length} routines`);
+    }
+    continue;
+  }
+
   // a map file has `rows`, a content bundle does not
-  if (raw && typeof raw === 'object' && 'rows' in (raw as Record<string, unknown>)) {
+  if ('rows' in shape) {
     try {
       mapJsonToDef(raw as MapJson);
       console.log(`  · ${rel} — map ok`);

@@ -1,0 +1,167 @@
+{
+  "id": "map_kiln_row_slice",
+  "name": "Kiln Row \u2014 slice block",
+  "note": "Phase 1 vertical slice. Four blocks around a crossroads: tenement NW, tenement NE, holding SW, workshops SE, with a ration-office forecourt in the north-east. Interiors are walkable-flat and empty on purpose: Phase 1 has no doors, so the player can walk in. Positions here are tile coordinates; posts are where citizens punctuate their routes.",
+  "tileSize": 32,
+  "width": 40,
+  "height": 28,
+  "rows": [
+    "########################################",
+    "#......................................#",
+    "#.###########...###########............#",
+    "#.#.........#...#.........#............#",
+    "#.#.........#...#.........#............#",
+    "#.#.........#...#.........#............#",
+    "#.#.........#...#................#.....#",
+    "#.#.........#...#.........#............#",
+    "#.#.........#...#.........#............#",
+    "#.#.........#...#.........#............#",
+    "#.#.........#...#.........#............#",
+    "#.#####.#####...#####.#####.#####......#",
+    "#.............#........................#",
+    "#.............#........................#",
+    "#......................................#",
+    "#......................................#",
+    "#......................................#",
+    "#.####.######...##########.##########..#",
+    "#.#.........#...#...................#..#",
+    "#.#.........#...#...................#..#",
+    "#.#.........#..##...........##.........#",
+    "#.#.........#...#...................#..#",
+    "#.#.........#...#...................#..#",
+    "#.#.........#...#...................#..#",
+    "#.#.........#...#...................#..#",
+    "#.###########...#####################..#",
+    "#......................................#",
+    "########################################"
+  ],
+  "legend": {
+    ".": "floor",
+    "#": "wall",
+    "+": "doorway"
+  },
+  "player_start": [
+    20,
+    20
+  ],
+  "posts": [
+    {
+      "id": "ration_queue",
+      "x": 29,
+      "y": 14,
+      "label": "ration queue"
+    },
+    {
+      "id": "stall_row",
+      "x": 30,
+      "y": 10,
+      "label": "counter line"
+    },
+    {
+      "id": "laundry",
+      "x": 6,
+      "y": 6,
+      "label": "laundry"
+    },
+    {
+      "id": "tenement_nw",
+      "x": 8,
+      "y": 4,
+      "label": "tenement NW"
+    },
+    {
+      "id": "tenement_ne",
+      "x": 23,
+      "y": 6,
+      "label": "tenement NE"
+    },
+    {
+      "id": "holding_south",
+      "x": 7,
+      "y": 21,
+      "label": "holding"
+    },
+    {
+      "id": "workshop_se",
+      "x": 31,
+      "y": 21,
+      "label": "workshop floor"
+    },
+    {
+      "id": "crossroads",
+      "x": 20,
+      "y": 14,
+      "label": "crossroads"
+    },
+    {
+      "id": "alley_west",
+      "x": 14,
+      "y": 22,
+      "label": "west alley"
+    },
+    {
+      "id": "gate_east",
+      "x": 37,
+      "y": 13,
+      "label": "east gate"
+    },
+    {
+      "id": "kiosk",
+      "x": 17,
+      "y": 21,
+      "label": "kiosk"
+    },
+    {
+      "id": "bench_line",
+      "x": 24,
+      "y": 13,
+      "label": "bench line"
+    },
+    {
+      "id": "side_street",
+      "x": 28,
+      "y": 6,
+      "label": "side street"
+    },
+    {
+      "id": "nw_doorstep",
+      "x": 7,
+      "y": 13,
+      "label": "NW doorstep"
+    }
+  ],
+  "cameras": [
+    {
+      "id": "cam:K4-2",
+      "label": "K4-2 crossroads",
+      "x": 17,
+      "y": 11,
+      "w": 6,
+      "h": 6
+    },
+    {
+      "id": "cam:annex-1",
+      "label": "annex-1 ration line",
+      "x": 27,
+      "y": 12,
+      "w": 8,
+      "h": 5
+    },
+    {
+      "id": "cam:stair-3",
+      "label": "stair-3 NE entrance",
+      "x": 16,
+      "y": 10,
+      "w": 11,
+      "h": 4
+    },
+    {
+      "id": "cam:gate-e",
+      "label": "gate-e east gate",
+      "x": 34,
+      "y": 11,
+      "w": 5,
+      "h": 7
+    }
+  ]
+}

@@ -61,16 +61,19 @@ No gameplay. This is the phase that gets skipped and shouldn't be.
 Goal: **one full shift** in grey boxes: walk, inspect 6 citizens, trigger 1 micro-event, file a
 form, get an audit. Then a human plays it and answers G0.
 
+**Status: built 2026-11-18.** G0 not yet run — three untrained testers are required, and that is
+not something the build can supply. Micro-events are authored but not yet drawn (Phase 3).
+
 | ID | Task | Acceptance check |
 |---|---|---|
-| `[ ]` P1-T01 | `ReportLine` schema + event log + serialisation (ADR-0002 shapes) | a hardcoded event → line → save round-trip, unit-tested |
-| `[ ]` P1-T02 | Beat mode: pawn walking, 6 citizens with routines, hover/interact | can walk the block, citizens keep 1 routine each |
-| `[ ]` P1-T03 | Citizen card UI: 6 fields, 3 checks, generated irregularities | a citizen with a bad serial is visually distinguishable via checks |
-| `[ ]` P1-T04 | Inspection conversation: temperament + 3 questions + outcome | catching a rehearsed liar feels *reasoned*, not pixel-hunted (playtest) |
-| `[ ]` P1-T05 | Desk form UI (1 page): stamps, steppers, tags, free text, exposure gutter | filing 5 lines takes < 90 s decisively; exposure always explainable |
-| `[ ]` P1-T06 | Audit engine: contradiction + witness + peer tests → stamped sheet | camera-observed lie is caught 100%; honest filing never surprises |
-| `[ ]` P1-T07 | `SectorBelief` write + a single visible consequence next shift | under-reporting resistance changes the next day's incident text |
-| `[ ]` P1-T08 | **Grey-box art pass + barks** (30 lines) so the slice can be *felt* | a tester can describe the regime's tone from the slice alone |
+| `[v]` P1-T01 | `ReportLine` schema + event log + serialisation (ADR-0002 shapes) | a hardcoded event → line → save round-trip, unit-tested |
+| `[v]` P1-T02 | Beat mode: pawn walking, 6 citizens with routines, hover/interact | can walk the block, citizens keep 1 routine each |
+| `[v]` P1-T03 | Citizen card UI: 6 fields, 3 checks, generated irregularities | a citizen with a bad serial is visually distinguishable via checks |
+| `[v]` P1-T04 | Inspection conversation: temperament + 3 questions + outcome | catching a rehearsed liar feels *reasoned*, not pixel-hunted (playtest) |
+| `[v]` P1-T05 | Desk form UI (1 page): stamps, steppers, tags, free text, exposure gutter | filing 5 lines takes < 90 s decisively; exposure always explainable |
+| `[v]` P1-T06 | Audit engine: contradiction + witness + peer tests → stamped sheet | camera-observed lie is caught 100%; honest filing never surprises |
+| `[v]` P1-T07 | `SectorBelief` write + a single visible consequence next shift | under-reporting resistance changes the next day's incident text |
+| `[v]` P1-T08 | **Grey-box art pass + barks** (30 lines) so the slice can be *felt* | a tester can describe the regime's tone from the slice alone |
 
 **Gate G0:** *"Do I care about what I write?"* — 3 testers, 15 min each.
 **If fail:** do not start Phase 2. Redesign the Record; the GDD's §3.2 becomes the only doc that

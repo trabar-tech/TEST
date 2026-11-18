@@ -6,6 +6,8 @@
  *  2. src/core/** must not import pixi.js, touch `window`/`document`, or use DOM APIs
  *  3. src/core/** must not import from src/render or src/ui
  *  4. content JSON must not contain a "truth" key inside a claim (Paper Truth guard)
+ *  5. no system may derive world state from `truth`: the sim reads `claim` only
+ *     (SYS-REC-01 §5.3). The audit and the tests are the only exceptions.
  *
  * Exits non-zero with a readable list. Cheap enough to run in CI and by hand.
  */
@@ -70,6 +72,25 @@ for (const file of files) {
       }
     });
   }
+}
+
+// 5. the sim must never read `truth` (Paper Truth, enforced)
+//
+// The whole design rests on "the city believes what it is told". A single
+// `line.truth.classification` reached from a system would silently turn the game
+// into one where the regime knows everything, and no test would catch it.
+const TRUTH_READERS = new Set(['core/record.ts', 'systems/audit.ts']);
+for (const file of files) {
+  const rel = relative(SRC, file);
+  if (TRUTH_READERS.has(rel)) continue;
+  if (!rel.startsWith('systems/')) continue;
+  const lines = readFileSync(file, 'utf8').split('\n');
+  lines.forEach((line, i) => {
+    // `truth` as a value read off a line/claim, not a parameter name or a type
+    if (/\bline\.truth\b|\b\.truth\.(classification|force_rung|detainees|damage|casualties|bribe_taken|third_party_present|illegal_search)/.test(line)) {
+      problems.push(`${rel}:${i + 1} reads \`truth\` — simulation must derive from claims only (SYS-REC-01 §5.3)`);
+    }
+  });
 }
 
 // 4. Paper Truth guard on content: no `truth` inside authored claims

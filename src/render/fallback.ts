@@ -9,10 +9,9 @@
  * lands.
  */
 
-import type { Sim } from '@systems/sim';
 import type { Vec2 } from '@core/nav';
 import { fitCamera, screenToWorld, type Camera } from './camera';
-import type { SceneHandle } from './scene';
+import type { SceneHandle, Renderable } from './scene';
 
 const FLOOR = '#1b1f24';
 const FLOOR_ALT = '#20252b';
@@ -24,7 +23,7 @@ const PATH = '#6f8fa8';
 const CURSOR = '#d8a85a';
 const CURSOR_BAD = '#a8493f';
 
-export function createFallbackScene(sim: Sim, host: HTMLElement): SceneHandle {
+export function createFallbackScene(sim: Renderable, host: HTMLElement): SceneHandle {
   const canvas = document.createElement('canvas');
   canvas.style.display = 'block';
   canvas.setAttribute('aria-label', 'Sector 4 — Kiln Row');
@@ -47,7 +46,7 @@ export function createFallbackScene(sim: Sim, host: HTMLElement): SceneHandle {
   }
   resize(host.clientWidth, host.clientHeight);
 
-  function draw(current: Sim, opts: { cursor: Vec2 | null; cursorValid: boolean }): void {
+  function draw(current: Renderable, opts: { cursor: Vec2 | null; cursorValid: boolean }): void {
     if (!g) return;
     const cssW = canvas.width / dpr;
     const cssH = canvas.height / dpr;
@@ -69,6 +68,36 @@ export function createFallbackScene(sim: Sim, host: HTMLElement): SceneHandle {
           g.fillStyle = WALL_TOP;
           g.fillRect(x * t, y * t, t, 4);
         }
+      }
+    }
+
+    for (const cam of current.cameras) {
+      g.fillStyle = 'rgba(111,143,168,.06)';
+      g.fillRect(cam.x * t, cam.y * t, cam.w * t, cam.h * t);
+      g.strokeStyle = 'rgba(111,143,168,.3)';
+      g.lineWidth = 1;
+      g.strokeRect(cam.x * t, cam.y * t, cam.w * t, cam.h * t);
+    }
+
+    for (const c of current.citizenRoster) {
+      const cp = current.citizenPosition(c.id);
+      if (!cp) continue;
+      const fear = current.citizenFear(c.id);
+      const r = t * 0.26;
+      g.fillStyle = '#9fb0c0';
+      g.beginPath();
+      g.arc(cp.x, cp.y, r, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = fear > 0.62 ? MASK : '#4c5a68';
+      g.beginPath();
+      g.arc(cp.x, cp.y, r * 0.55, 0, Math.PI * 2);
+      g.fill();
+      if (current.hoveredCitizenId === c.id) {
+        g.strokeStyle = CURSOR;
+        g.lineWidth = 1.5;
+        g.beginPath();
+        g.arc(cp.x, cp.y, r * 1.9, 0, Math.PI * 2);
+        g.stroke();
       }
     }
 
