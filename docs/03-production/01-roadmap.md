@@ -139,6 +139,7 @@ system.
 | `[ ]` P4-T04 | 15-shift campaign structure + act transitions | can be played start to finish with no dead ends |
 | `[ ]` P4-T05 | 5 endings + the Case File browser (searchable archive) | endings determined by data; verified by test, not by eyeball |
 | `[ ]` P4-T06 | Compliance Review modifier + purge/hard-fail rules | 3 reviews in a row ends the run, with a legible reason |
+| `[ ]` P4-T07 | Act III politics: denounce a rival warden using your own archive | a stable, corroborated line succeeds; an unstable one backfires *predictably* |
 
 **Gate G3:** *"Would I finish this twice?"*
 **If fail:** cut campaign to 10 shifts; keep Continuing Service as the long tail.
@@ -154,7 +155,8 @@ system.
 | `[ ]` P5-T03 | Onboarding: diegetic tutorial (a superior walks you through shift 1) | first honest report filed in < 2 min, no manual |
 | `[ ]` P5-T04 | Audio pass: ducking during inspections, radio barks | inspection silence is audible (test: mute music check) |
 | `[ ]` P5-T05 | Save migration + "New Game+ Known Quantity" | previous Case File read aloud as evidence |
-| `[ ]` P5-T06 | Release build, hosting, crash-free session log | 30-min session, no console errors |
+| `[ ]` P5-T06 | Continuing Service (endless mode) after the campaign | 20 procedural shifts with Arbiter budgets still holding |
+| `[ ]` P5-T07 | Release build, hosting, crash-free session log | 30-min session, no console errors |
 
 **Release:** browser build (static host), 1.0.
 
