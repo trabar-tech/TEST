@@ -33,6 +33,16 @@ import {
 import { emptyState, type GameState } from '@core/state';
 import { runAudit, autoFile, type AuditResult } from './audit';
 import { Citizens, type CitizenComponents, type CitizenDef, type PostDef } from './citizens';
+import type { IncidentResult } from './tactical/incident';
+import type { IncidentDocket } from './tactical/paperwork';
+import {
+  cardScene,
+  draftFromIncident,
+  highestRung,
+  incidentTags,
+  sceneNote,
+  truthFromIncident,
+} from './tactical/paperwork';
 import {
   MAX_QUESTIONS,
   QUESTIONS,
@@ -61,6 +71,22 @@ export interface CitizenFile {
   routines: Record<string, string[]>;
 }
 
+/** Docket scene facts → the (smaller) shape a filed line keeps. */
+function docketSceneFacts(s: DocketScene): NonNullable<ReportLine['scene']> {
+  return {
+    entry: s.entry,
+    roomsCleared: s.roomsCleared,
+    roomsActuallyClear: s.roomsActuallyClear,
+    loudestNoise: s.loudestNoise,
+    heardByNeighbours: s.heardByNeighbours,
+    damage: s.damage,
+    wallsBreached: s.wallsBreached,
+    unfound: s.unfound,
+    stabilised: s.stabilised,
+    unauthorisedForce: s.unauthorisedForce,
+  };
+}
+
 /* ---------------------------------------------------------------- docket */
 
 export type EventKind = 'inspection' | 'incident' | 'patrol';
@@ -83,6 +109,27 @@ export interface DocketEvent {
   /** the draft the player starts from, so a decision is a decision */
   draft: Claim;
   tags_hint: string[];
+  /**
+   * Facts the scene produced that the desk may *show* but cannot let the player
+   * edit: which door was used, how far the noise carried, who heard it. This is
+   * the tactical layer leaking into the record (P2-T08) — the gutter reads it,
+   * the form does not.
+   */
+  scene?: DocketScene;
+}
+
+export interface DocketScene {
+  entry: string;
+  roomsCleared: number;
+  roomsClaimed: number;
+  roomsActuallyClear: number;
+  loudestNoise: number;
+  heardByNeighbours: number;
+  damage: number;
+  wallsBreached: number;
+  unfound: number;
+  stabilised: number;
+  unauthorisedForce: boolean;
 }
 
 /* ------------------------------------------------------------------ shift */
@@ -459,6 +506,76 @@ export class Simulation {
     return out.slice(0, 2);
   }
 
+  /* -------------------------------------------------------------- incident */
+
+  /**
+   * Record an incident in the docket. The tactical scene decides the facts; this
+   * method only converts them into the same card shape the desk already renders,
+   * so the player meets one kind of decision, not two.
+   *
+   * The draft is the honest one. Lying is an edit, which is the whole design.
+   */
+  addIncident(result: IncidentResult, opts: { ref: string; address: string; cameras?: string[]; witnesses?: ReportLine['witnesses'] }): DocketEvent {
+    const truth = truthFromIncident(result);
+    const scene: DocketScene = cardScene(result);
+    const event: DocketEvent = {
+      ref: opts.ref,
+      kind: 'incident',
+      title: opts.address,
+      note: sceneNote(result, highestRung(result)),
+      truth,
+      cameras: opts.cameras ?? [],
+      witnesses: opts.witnesses ?? [],
+      quota: 1,
+      draft: draftFromIncident(result),
+      tags_hint: incidentTags(result),
+      scene,
+    };
+    this.docket.push(event);
+    this.bus.emit('incident:docketed', {
+      event_ref: event.ref,
+      rung: truth.force_rung,
+      docket: this.docket.length,
+    });
+    return event;
+  }
+
+  /**
+   * Record a crowd event. Same card shape, same desk, same audit — the crowd is
+   * not a mini-game with its own economy, it is another thing you have to write up.
+   */
+  addCrowd(docket: IncidentDocket): DocketEvent {
+    const event: DocketEvent = {
+      ref: docket.ref,
+      kind: 'incident',
+      title: docket.title,
+      note: docket.note,
+      truth: docket.truth,
+      cameras: docket.cameras,
+      witnesses: docket.witnesses,
+      quota: docket.quota,
+      draft: docket.draft,
+      tags_hint: docket.tags_hint,
+      scene: docket.scene,
+    };
+    this.docket.push(event);
+    // telemetry only, and from the *draft*: a systems file must not read `truth`
+    // even to decorate an event (SYS-REC-01 §5.3, boundary rule 5)
+    this.bus.emit('incident:docketed', {
+      event_ref: event.ref,
+      rung: docket.draft.force_rung,
+      docket: this.docket.length,
+    });
+    return event;
+  }
+
+  /** What the last incident produced, for the debrief and the case file. */
+  get lastIncident(): IncidentResult | null {
+    return this.incidentResult;
+  }
+
+  incidentResult: IncidentResult | null = null;
+
   /* ----------------------------------------------------------------- desk */
 
   openDesk(): void {
@@ -497,7 +614,7 @@ export class Simulation {
       id: this.record.nextId(this.state.shift),
       shift: this.state.shift,
       event_ref: event.ref,
-      category: event.kind === 'inspection' ? 'inspection' : 'patrol',
+      category: event.kind === 'inspection' ? 'inspection' : event.kind === 'incident' ? 'incident' : 'patrol',
       claim: entry.claim,
       truth: event.truth,
       witnesses: event.witnesses,
@@ -505,6 +622,7 @@ export class Simulation {
       free_text: entry.free_text,
       exposure,
     });
+    if (event.scene) line.scene = docketSceneFacts(event.scene);
     line.derived = { slack: slack(entry.claim, event.truth), caught: false, consequences: [] };
     this.record.append(line);
     this.bus.emit('desk:filed', {
@@ -536,6 +654,7 @@ export class Simulation {
         { ref: event.ref, shift: this.state.shift, cameras: event.cameras, truthLine },
         this.record.nextId(this.state.shift),
       );
+      if (event.scene) line.scene = docketSceneFacts(event.scene);
       this.record.append(line);
       auto.push(line);
       this.bus.emit('desk:auto_filed', { event_ref: event.ref });

@@ -64,6 +64,24 @@ export interface Derived {
   consequences: string[];
 }
 
+/**
+ * What the tactical scene produced, as the audit sees it. Deliberately *not* part
+ * of `claim`: the player can edit a claim, and must be able to — this is the list
+ * of things they cannot.
+ */
+export interface SceneFacts {
+  entry: string;
+  roomsCleared: number;
+  roomsActuallyClear: number;
+  loudestNoise: number;
+  heardByNeighbours: number;
+  damage: number;
+  wallsBreached: number;
+  unfound: number;
+  stabilised: number;
+  unauthorisedForce: boolean;
+}
+
 export interface ReportLine {
   /** "r-<shift>-<seq>" */
   id: string;
@@ -83,6 +101,8 @@ export interface ReportLine {
   lifespan: number;
   exposure: ExposureReport;
   derived: Derived;
+  /** present only on incident lines (P2); absent means "no tactical scene" */
+  scene?: SceneFacts;
 }
 
 /* ------------------------------------------------------------------- slack */

@@ -16,7 +16,7 @@
 import type { Rng } from '@core/rng';
 import type { ReportLine, WitnessRef } from '@core/record';
 
-export type FindingKind = 'camera' | 'witness' | 'contradiction' | 'pattern' | 'silence';
+export type FindingKind = 'camera' | 'witness' | 'contradiction' | 'pattern' | 'silence' | 'scene';
 
 export interface Finding {
   kind: FindingKind;
@@ -60,6 +60,81 @@ export function witnessComesForward(w: WitnessRef, stability: number, rng: Rng):
   return rng.chance(p);
 }
 
+/**
+ * Findings that come from the incident log rather than from a camera or a
+ * witness. Weighted below a camera (0.2) and above a single slow witness (0.15)
+ * because a door off its hinges is not a matter of who talks: it is a thing the
+ * street saw happen.
+ *
+ * Deliberately only fires on *material* omissions, so an honest line never meets
+ * this code path at all.
+ */
+function sceneFindings(line: ReportLine, rng: Rng): Finding[] {
+  const scene = line.scene;
+  if (!scene) return [];
+  const out: Finding[] = [];
+  const claim = line.claim;
+
+  const declares = (token: string): boolean => claim.property?.includes(token) === true;
+
+  // a neighbour's testimony about noise. An honest "nothing found, but the street
+  // heard it" carries `third_party`; the finding is about the *omission*, not
+  // about the noise. That distinction is what keeps this from punishing honesty.
+  if (scene.heardByNeighbours > 0 && claim.classification === 'P' && !declares('third_party')) {
+    if (rng.chance(0.75)) {
+      out.push({
+        kind: 'scene',
+        line_id: line.id,
+        evidence: `a neighbour heard ${scene.loudestNoise} tiles of noise from the street; the line says nothing happened`,
+        confidence: 0.8,
+        weight: 0.55,
+      });
+    }
+  }
+
+  // the door: damage is physical and survives the player's editing
+  if (scene.damage >= 2 && claim.damage < 2) {
+    out.push({
+      kind: 'scene',
+      line_id: line.id,
+      evidence: `the door took ${scene.damage} points of damage; the line reports ${claim.damage}`,
+      confidence: 1,
+      weight: 0.45,
+    });
+  }
+
+  // the man nobody found, and the room that was reported clear with him in it.
+  // One finding, because they are one omission: the line says the job was done.
+  if (claim.classification === 'P' && !declares('premises_not_fully_searched')) {
+    const wrongClears = Math.max(0, scene.roomsCleared - scene.roomsActuallyClear);
+    if (scene.unfound > 0 || wrongClears > 0) {
+      out.push({
+        kind: 'scene',
+        line_id: line.id,
+        evidence:
+          wrongClears > 0
+            ? `${wrongClears} room(s) were reported clear with a subject still in them`
+            : `the premises were not fully searched; ${scene.unfound} subject(s) were never seen`,
+        confidence: 0.9,
+        weight: 0.2,
+      });
+    }
+  }
+
+  // unapproved lethal force
+  if (scene.unauthorisedForce && claim.force_rung < 4) {
+    out.push({
+      kind: 'scene',
+      line_id: line.id,
+      evidence: 'lethal force was used without a field authorisation in the log',
+      confidence: 1,
+      weight: 0.9,
+    });
+  }
+
+  return out;
+}
+
 /** The audit proper. */
 export function runAudit(opts: AuditOptions): AuditResult {
   const findings: Finding[] = [];
@@ -98,6 +173,17 @@ export function runAudit(opts: AuditOptions): AuditResult {
         destabilised.push(line.id);
         break; // one witness is enough for the sheet; the rest is texture
       }
+    }
+
+    // 2b. The scene test (P2): the tactical layer's own log is a machine record.
+    //     A neighbour who heard the ram, a door that came off its frame, a man
+    //     nobody found — these are facts the incident produced and the player
+    //     cannot edit at the desk. They are the tactical layer's contribution to
+    //     the record, and the reason a raid cannot be filed as a quiet walk.
+    const scene = sceneFindings(line, rng);
+    for (const f of scene) {
+      findings.push(f);
+      if (!destabilised.includes(line.id)) destabilised.push(line.id);
     }
 
     // 3. Contradictions with the player's own earlier lines.
@@ -195,6 +281,8 @@ function label(kind: FindingKind): string {
       return 'PATTERN';
     case 'silence':
       return 'SILENCE';
+    case 'scene':
+      return 'THE SCENE';
   }
 }
 

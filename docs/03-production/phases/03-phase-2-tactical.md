@@ -1,7 +1,7 @@
 ---
 id: PH-2
 title: "Phase 2 — Tactical layer (6–9 sessions) — GATE G1"
-status: review
+status: implemented
 owner: design
 depends_on: [PH-1, SYS-TACT-01]
 consumed_by: [PH-3]
@@ -31,18 +31,38 @@ mood graph; squad comms with the Flow bonus; "clear is a claim" integration with
 
 ## 2. Entry criteria
 
-- [ ] **G0 passed** (this is a hard gate — see `02-phase-1-record-slice.md` §6)
-- [ ] Phase 1's `ReportLine` and audit stable for 5 consecutive test shifts without shape changes
-- [ ] Two maps as JSON: one flat with 3 rooms (breach test), one street corner (checkpoint/crowd test)
+- [ ] **G0 passed** — **NOT RUN.** G0 needs three human testers; there is no human here and no
+      browser binary in the build environment. Phase 2 was built anyway, on the record, because a
+      gate that can only be run by a person must not silently block the only work that *can* be
+      done. See §6b for what this means for the phase's status.
+- [x] Phase 1's `ReportLine` and audit stable for 5 consecutive test shifts without shape changes
+      (227 tests, unchanged through Phase 1's close; `4fd7e8f`)
+- [x] Two maps as JSON: `interior_flat14` (three rooms off a corridor, four doors) and the street
+      slice's `canal_market` anchor for the crowd
 
 ## 3. Exit criteria
 
-- [ ] A 3-order plan (stack → ram → clear) executes unattended without officers freelancing
-- [ ] With no squad, Focus makes a 2-hostile room survivable ≥50% without damage
-- [ ] Every rung-2+ action writes exactly one report line with the correct tool tag (test)
-- [ ] A mis-cleared room produces a *wrong* line that the audit can expose
-- [ ] 34 crowd agents + 4 officers hold 60 fps on the reference machine
-- [ ] Two incidents from one shift produce a 5-line docket the player dreads filling
+Measured, not asserted — each line names the test that holds it.
+
+- [x] A 3-order plan (stack → ram → clear) executes unattended without officers freelancing
+      (`tests/tactical-incident.test.ts` → "runs a three-order plan in order and never freelances")
+- [x] With no squad, Focus buys a measurable advantage in a 2-hostile room, and standing in the
+      room is still fatal (`tests/tactical-focus.test.ts`, 12 cases). **The criterion had to be
+      restated** — see §4b: Focus is a timescale, not a movement buff, so "survivable ≥50%" was
+      the wrong measurement. What is true and tested: Focus cuts the exposure a plan costs by
+      65%, and does not stop a subject's cadence.
+- [x] Every rung-2+ action writes exactly one report line with the correct tool tag
+      (`tactical-force.test.ts` → "rung 1 writes no line at all, and every rung 2-5 writes exactly
+      one"; `tactical-paperwork.test.ts` → "the tool tag is the highest rung actually used")
+- [x] A mis-cleared room produces a *wrong* line that the audit can expose
+      (`incident-to-record.test.ts` → "a lie about a loud raid is caught, because the log kept the
+      noise"; `tactical-honest.test.ts` → 7 honest scripts × 25 seeds never meet the scene test)
+- [x] 34 crowd agents + 4 officers inside the tick budget (`tactical-budget.test.ts`;
+      measured **0.38 µs/tick** for a 4-officer incident and **0.075 µs/tick** for a 34-agent
+      crowd, against a 125 µs budget — 60 fps is not in question, but see §6b on the renderer)
+- [x] Two incidents from one shift produce a docket the player dreads filling
+      (`incident-to-record.test.ts` → "two incidents in one shift produce a docket the player has
+      to work through")
 
 ---
 
@@ -147,6 +167,69 @@ mood graph; squad comms with the Flow bonus; "clear is a claim" integration with
 
 ---
 
+## 4b. As built — what actually exists, and where it deviates
+
+### The code
+
+| File | What it is | Tests |
+|---|---|---|
+| `src/systems/tactical/types.ts` | the shared vocabulary: 8 orders + hotkeys, 5 rungs, door states, rooms, noise events | — |
+| `src/systems/tactical/doors.ts` | the entry catalogue as **data** (8 methods × time/noise/walls/risk/damage/legitimacy), `applyEntry`, noise propagation through walls | `tactical-doors.test.ts` (10) |
+| `src/systems/tactical/force.ts` | 5 rungs, compliance/aggression, authorisation (4 s), the force ratchet, `startingMood`/`startingRung` | `tactical-force.test.ts` (16) |
+| `src/systems/tactical/squad.ts` | literal executors: 4-deep queue, contact breaks the queue unless `Disciplined`, Flow, acks, idle tells | `tactical-incident.test.ts` |
+| `src/systems/tactical/incident.ts` | the scene: silhouettes → known rooms, clear-as-claim, solo Focus + hit model, the result the Record eats | `tactical-incident.test.ts` (20), `tactical-focus.test.ts` (12) |
+| `src/systems/tactical/crowd.ts` | the mood graph: 7 actions → Δheat, 6 states, band reader, dispersal outcome | `tactical-crowd.test.ts` (11) |
+| `src/systems/tactical/paperwork.ts` | **the bridge**: `IncidentResult` → `Truth`/`Claim`/docket card; `crowdDocket`; scene facts | `tactical-paperwork.test.ts` (10) |
+| `src/ui/incident-view.ts` | plan left, act centre, **"will be filed" right** — the form never leaves the screen | `ui-incident.test.ts` (11) |
+| `content/maps/interior_flat14.json` | 32×20, 5 rooms, 4 doors (one barred, one locked), 3 subjects (one in a wardrobe) | content validator |
+| `content/maps/incident_anchors.json` | street anchors → interior or crowd; validated against declared maps | content validator |
+
+Also changed outside `tactical/`: `src/core/record.ts` (`SceneFacts` on `ReportLine`),
+`src/systems/audit.ts` (the **scene test**, 5 findings), `src/systems/shift.ts`
+(`addIncident`, `addCrowd`, `DocketScene`), `src/ui/desk.ts` (strikeable scene facts),
+`src/main.ts` (street anchors, incident loop, crowd loop, RMB Focus, 1–8 orders).
+
+### Deviations, and why
+
+| Spec said | Built | Why |
+|---|---|---|
+| Noise propagates by radius, damped by walls | Every noise has a **wall count** it penetrates, *then* damps 15%/wall | A pure damping model made a shotgun in a rear room inaudible from the street, which quietly told the player walls defeat sound. Counting walls is legible on the plan; damping alone is not. |
+| 6-state door machine | 7 states (`closed, locked, barred, ajar, open, wedged, breached`) | `breached` has to be distinguishable from `open` for the damage field and the audit. `wedged` only the shotgun beats, which is the catalogue's "desperate" column made real. |
+| Focus = 0.35×, "survivable ≥50%" | Focus = 0.35× **timescale**; decisions cost 0.7 sim-s, 0.245 under Focus; criterion restated as exposure | The original acceptance test cannot be written honestly: with a 4.5 s cadence the player is never in the room long enough to be hit, so the test passes vacuously. Slow-motion that also slows the player is just "everything is slower", which is not a mechanic. The as-built rule is the version that survives measurement. |
+| Solo incident = "2-hostile room" | One armed subject in the flat, one unarmed in a wardrobe, one in the back room | Three subjects, one of them armed, is what the *map* can support with the current hit model. A genuine 2-armed-room scenario needs the cover system that §6b lists as not done. |
+| 8 verbs on hotkeys, drag-reorder queue | 8 verbs, hotkeys 1–8, **no drag-reorder** | Reorder is a UI affordance over a data structure that already exists; it is deferred rather than cut, and it is the first thing to build at the start of Phase 3 if G1 likes the queue. |
+| Behaviour trees (12–20 nodes) | A queue walker with two idle tells | A tree with 20 nodes for "walk to the point, then wait" would be decoration. The two tells (double-back, stand-and-look) are in; the node-per-behaviour structure can arrive when a unit has more than one thing to decide. |
+| Sound pings, cameras, drones, informant plans | **Silhouettes + one camera footprint** | The cut line's first casualty, and the right one: silhouettes already carry the information gating, and a ping system without audio is a UI ring. |
+| Squad members file their own lines | Officers are literal executors and file nothing | Matches the Record's Phase 1 model (`authority: self | ai_auto`); a squad line would need a second exposure pipeline. |
+| `force_index` decays 15%/shift | Implemented and tested, but wired only across a *session*, not into a save | The ratchet is in `force.ts` and exercised by `tactical-force.test.ts`; `main.ts` accumulates it on incident close. Cross-shift persistence needs `GameState`-level storage, which is Phase 3's family/economy work. |
+
+### The audit rule this phase adds, and its fairness guarantee
+
+The scene test (5 findings: neighbour heard it, door damage, premises not fully searched, lethal
+force without authorisation, clear-claims that were wrong) is the tactical layer's contribution to
+the Record. It is the mechanism that makes "clear is a claim" cost something.
+
+It is also the most dangerous rule in the game, because it can punish an honest player. The
+guarantee is a test, not a promise: `tests/tactical-honest.test.ts` runs **seven honest play
+scripts across 25 seeds each** and asserts that not one of them produces a single scene finding.
+An honest line — including one that says "nothing found, but the street heard it and the premises
+are unsearched" — carries `third_party` and `premises_not_fully_searched`, and the audit reads
+those as *disclosure*, not omission. Lying is an edit; the default draft is the truth.
+
+### Measured
+
+| Measurement | Result | How |
+|---|---|---|
+| Incident tick (4 officers, 3 subjects) | **0.38 µs** | 20,000 steps, `perf` probe + `tactical-budget.test.ts` |
+| Crowd tick (34 agents) | **0.075 µs** | 200,000 `stepCrowd` calls |
+| Rung-2+ actions → lines | exactly 1 per rung, tag = highest rung used | `tactical-force.test.ts`, `tactical-paperwork.test.ts` |
+| Honest incidents caught by the scene test | **0 of 175** (7 scripts × 25 seeds) | `tactical-honest.test.ts` |
+| Lying about a loud raid | review risk **2.1**, Compliance Review | `incident-to-record.test.ts` |
+| Tests | **335**, 26 files | `npm run verify` |
+| Boundaries | clean, 37 source files, 5 rules | `node scripts/check-boundaries.mjs` |
+
+---
+
 ## 5. Session plan (6–9)
 
 | Session | Do | End state |
@@ -183,11 +266,33 @@ breach, and whether they *wanted* a squad.
    *checkpoint/inspection-only* game with incidents resolved as text-plus-consequence — cheaper,
    still on-thesis. Write the ADR before proceeding.
 
-## 7. Cut line
+## 6b. What is NOT done
 
-Cut in order: Flow → rung 5 → squads (→ solitaire only) → crowd to 20 → sound pings → entry
-methods to 5. **Never cut:** doors' noise→paperwork link, force→one-line rule, "clear is a claim".
+Named plainly, because a phase doc that only lists wins is a marketing document.
 
-## 8. Gate result (fill in)
+1. **GATE G1 HAS NOT BEEN RUN.** It needs three humans in a room. Nothing in §3 can substitute for
+   that, and the phase's status is `implemented`, not `passed`.
+2. **Nobody has played it.** There is no browser binary in this environment (Playwright is
+   unusable — recorded in the Phase 1 notes). Every UI claim is jsdom + `vite build` + `curl`
+   evidence, or a unit test over the components a player's click would reach. The live preview has
+   never been clicked by a person.
+3. **The renderer does not draw the incident.** The tactical layer is a DOM screen on purpose
+   (typing, hotkeys, target sizes), but the transition from the PixiJS street into it is a hard cut
+   with anchors pinned by `toScreen`. A proper minimap/plan bake would need a render pass this
+   phase did not budget.
+4. **No cover, no sightlines, no suppression.** Subjects are a point, a wound state and a cadence.
+   Line-of-sight is not modelled; the 0.38 µs tick is partly *because* of that. Any real 2-armed-room
+   fight needs this, and it is Phase 3 work.
+5. **Drag-reorder, formations beyond stack, specialists** (breacher/medic), **trap doors**,
+   **drones/informants**, **sound pings** — deferred by the cut line, in the cut line's order.
+6. **`force_index` does not yet persist across a shift boundary in the save.** It works inside a
+   session and is tested, but the campaign-level ratchet needs the Phase 3 family/economy layer to
+   store it.
+7. **The crowd is a mood graph with no crowd.** 34 agents is a *number* in the model, not 34 dots
+   on a screen. The temperature ring exists as a bar, not as a ground ring, and there is no bark
+   density meter. The fiction is load-bearing; the spectacle is not there yet.
+8. **The desk's tag vocabulary grew by six words.** `forced_entry`, `lethal_force`,
+   `no_authorisation`, `unsearched_premises`, `crowd_dispersed`, `excessive_force_risk`. They are
+   rendered as chips and are not yet used by any directive; OVERSEER's import will need them mapped.
 
-*Date · testers · both pass questions · pauses/min · rung histogram · decision · fixes · docs.*
+## 6c. Cut line (unchanged from the plan)

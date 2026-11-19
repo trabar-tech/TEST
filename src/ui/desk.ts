@@ -29,6 +29,13 @@ export const TAG_VOCABULARY = [
   'insufficient_papers',
   'property_vandalism',
   'bribe_offered',
+  // tactical-layer tags (P2): the vocabulary the incident screen can add
+  'forced_entry',
+  'excessive_force_risk',
+  'lethal_force',
+  'no_authorisation',
+  'unsearched_premises',
+  'crowd_dispersed',
 ] as const;
 
 const CLASSIFICATIONS: Array<{ code: Classification; name: string; glyph: string }> = [
@@ -219,6 +226,38 @@ export function createDesk(
     }
     col.append(tagWrap);
 
+    // the scene's own record. Everything here was *observed*; striking it is the
+    // player's edit, and every strike is a thing the audit can put back.
+    if (event.draft.property && event.draft.property.length > 0) {
+      col.append(label('what the scene recorded'));
+      const propWrap = el('div', 'display:flex;flex-wrap:wrap;gap:4px');
+      const all = event.draft.property;
+      for (const token of all) {
+        const on = draft.claim.property?.includes(token) !== false;
+        propWrap.append(
+          button(`${on ? '◉' : '○'} ${token.replace(/_/g, ' ')}`, () => {
+            const current = draft.claim.property ?? [...all];
+            draft.claim.property = on
+              ? current.filter((t) => t !== token)
+              : [...new Set([...current, token])];
+            render();
+          }, {
+            disabled: filed,
+            style: chipStyle(on),
+            title: on ? 'Strike this from the line. The scene still recorded it.' : 'Put it back.',
+          }),
+        );
+      }
+      col.append(propWrap);
+      col.append(
+        el(
+          'div',
+          'color:#6f7d8b;font-size:10px;line-height:1.5',
+          'Struck facts are omissions, not absences. The audit reads omissions the way a supervisor does.',
+        ),
+      );
+    }
+
     col.append(label('your words'));
     const area = el('textarea', [
       'width:100%',
@@ -309,14 +348,51 @@ export function createDesk(
       el('div', 'margin-top:14px;border-top:1px solid rgba(120,140,160,.18);padding-top:10px'),
       label('what happened'),
       note(event.note),
+    );
+
+    if (event.scene) {
+      // the tactical layer's own facts, shown where the player cannot edit them
+      const s = event.scene;
+      col.append(
+        el('div', 'margin-top:10px;display:flex;flex-direction:column;gap:3px'),
+        label('the scene'),
+        fact('entry', s.entry.replace(/_/g, ' ')),
+        fact('rooms claimed clear', `${s.roomsCleared}`),
+        fact('subjects never found', `${s.unfound}`, s.unfound > 0),
+        fact('noise', `${s.loudestNoise} tiles`, s.loudestNoise >= 6),
+        fact('heard from the street', s.heardByNeighbours > 0 ? `yes, ${s.heardByNeighbours}×` : 'no', s.heardByNeighbours > 0),
+        fact('damage', `${s.damage} / 3`, s.damage >= 2),
+        fact('force without authorisation', s.unauthorisedForce ? 'yes' : 'no', s.unauthorisedForce),
+      );
+      col.append(
+        el(
+          'div',
+          'margin-top:8px;font:10px/1.5 ui-monospace,monospace;color:#6f7d8b;font-style:italic',
+          'None of this can be edited here. You can only leave it out.',
+        ),
+      );
+    }
+
+    col.append(
       label('checks'),
       note(
         event.kind === 'inspection'
           ? 'Three field checks were available at the citizen card. Whatever they showed, this form is what the city will know.'
-          : 'No card was checked at this event.',
+          : event.kind === 'incident'
+            ? 'The scene produced its own facts. The form is where you decide which of them the city gets.'
+            : 'No card was checked at this event.',
       ),
     );
     return col;
+  }
+
+  function fact(name: string, value: string, alarm = false): HTMLElement {
+    const row = el('div', 'display:flex;justify-content:space-between;gap:8px;font:10px ui-monospace,monospace');
+    row.append(
+      el('span', 'color:#6f7d8b;text-transform:uppercase;letter-spacing:.08em', name),
+      el('span', `color:${alarm ? '#e2a19a' : '#c9d3dd'}`, value),
+    );
+    return row;
   }
 
   function reason(glyph: string, head: string, detail: string): HTMLElement {

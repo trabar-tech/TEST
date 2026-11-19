@@ -151,6 +151,9 @@ export function createFallbackScene(sim: Renderable, host: HTMLElement): SceneHa
       const rect = canvas.getBoundingClientRect();
       return screenToWorld(cam, clientX - rect.left, clientY - rect.top);
     },
+    toScreen(wx, wy) {
+      return { x: wx * cam.scale + cam.ox, y: wy * cam.scale + cam.oy };
+    },
     destroy() {
       canvas.remove();
     },

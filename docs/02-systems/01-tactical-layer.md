@@ -43,6 +43,19 @@ from being strictly-dominant versions of each other.
 
 TBD-HYPOTHESIS: 0.35 / 6 s / 9 s ratios. Owned by task `P2-T03`.
 
+> **As built (2026-11-18), and the one thing this table got wrong.** The 0.35 ratio
+> was implemented as a *movement* multiplier first, and measured: it passed the
+> original acceptance test ("a 2-hostile room is survivable ≥50%") **vacuously** —
+> with a 2.2 s enemy cadence the player was never in the room long enough to be hit,
+> so the metric was true for a reason that had nothing to do with Focus. It is a
+> **timescale**: the world runs at 0.35×, the player's hands do not, and the thing it
+> buys is the real seconds in which a plan gets issued. `Incident.noteAction()`
+> charges 0.7 sim-seconds per deliberate action (0.245 under Focus), which is where
+> the two clocks actually meet — and it is what the honest test measures.
+> Pause is *not* available inside an incident, so the "cheap and dull" tradeoff above
+> is currently expressed as "Focus or nothing", which is a smaller design than the
+> table promises. That is a G1 question, not an implementation bug.
+
 ---
 
 ## 2. Order vocabulary (shared by squads and the solo player)
@@ -118,6 +131,15 @@ Every breach generates: a **noise event** (radius per method), a **damage number
 report `damage` field), and a **time cost**. The *quiet* options are slow, the *fast* options
 are loud and expensive in paperwork. That is the whole design of the door.
 
+> **As built (2026-11-18).** The catalogue below is now data in
+> `src/systems/tactical/doors.ts` and its numbers were tuned to make the *ordering*
+> true rather than decorative: noise strictly ascends from knock & talk (2 tiles) to
+> shotgun (13), and each method carries a **wall count** it penetrates at all. The
+> wall count replaced a pure damping coefficient after a shotgun in a rear room
+> proved inaudible from the street — a model that silently told the player walls
+> defeat sound, which would have made the noise→paperwork link a lie. Knock reaches
+> zero walls; a ram two; a shotgun three.
+
 ### 4.2 Entry types
 
 | Entry | Time | Noise | Officer risk | Legitimacy | Best when |
@@ -144,6 +166,12 @@ minimises *recorded force*, not the one that minimises risk. That inversion is t
   (This is the tactical layer leaking into the Record: the game of truth starts here.)
 
 ---
+
+> **As built (2026-11-18).** Rungs, authorisation (4 s), wound model, executions
+> (force on someone already down is flagged, and is the only provable statement of
+> *intent* in a scene) and the ratchet are in `force.ts`, tested by
+> `tests/tactical-force.test.ts`. The one-line rule is enforced as a test over all
+> five rungs.
 
 ## 5. The force continuum (mechanical specification)
 
@@ -172,6 +200,12 @@ starts at a higher rung (people are armed and scared). **Suppression breeds resi
 mechanics make that literally true.**
 
 ---
+
+> **As built (2026-11-18).** `src/systems/tactical/crowd.ts` implements the table
+> below as a 7-action reducer over `heat` with hysteresis thresholds
+> (chant 0.35 / surge 0.6 / riot 0.85). 34 agents cost **0.075 µs/tick** — the mood
+> graph is deliberately not a simulation of 34 bodies, and that is the point of it.
+> The ground ring is a bar for now; see the Phase 2 doc §6b item 7.
 
 ## 6. Crowds
 
@@ -233,6 +267,19 @@ The Directorate will ask why there were no detentions. That is the entire moral 
   split, imported honestly.
 
 ---
+
+## 7b. As built: the result, not the scene
+
+The tactical layer hands the Record exactly one object: `IncidentResult`. It carries
+what the scene *observed* — entry method, rooms claimed clear vs actually clear,
+loudest noise and how many times the street heard it, damage, walls breached,
+subjects never found, stabilised witnesses, unauthorised force. `paperwork.ts`
+turns that into a `Truth`, an honest `Claim` draft, and a docket card; the desk
+lets the player strike the scene's recorded facts; the audit reads the strikes as
+omissions.
+
+That is the integration, and it is deliberately one-way: the tactical layer never
+reads the Record, and the Record never guesses what happened in a room.
 
 ## 8. Acceptance checks (what "done" means for this system)
 

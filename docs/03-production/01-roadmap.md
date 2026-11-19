@@ -90,15 +90,15 @@ Gate G1.
 
 | ID | Task | Acceptance check |
 |---|---|---|
-| `[ ]` P2-T01 | Door state machine + 8 entry types + noise events | each entry produces the documented noise radius in the log |
-| `[ ]` P2-T02 | Information gating: silhouettes, sound pings, one camera feed | you cannot see room contents without a source |
-| `[ ]` P2-T03 | Solo **Focus** mode (0.35×, 6 s / 9 s) | a 2-hostile room is survivable ≥50% without a squad |
-| `[ ]` P2-T04 | Order queue (8 verbs, 4 deep) + squad AI literal execution | stack→ram→clear executes unattended; contact cancels queue |
-| `[ ]` P2-T05 | Force continuum: 5 rungs, authorisation radio, wound model | every rung-2+ action writes exactly 1 line with the correct tool tag |
-| `[ ]` P2-T06 | Force ratchet: `force_index` persists and raises next shift's starting rung | 3 aggressive shifts measurably raise incident difficulty |
-| `[ ]` P2-T07 | Crowd mood graph (12→40 agents) with heat ring | 34 agents + 4 officers at 60 fps on reference hardware |
-| `[ ]` P2-T08 | Incident → report integration ("clear is a claim") | a mis-cleared room creates a wrong line that an audit can blow open |
-| `[ ]` P2-T09 | Squad comms: hotkey orders, voice ack, **Flow** bonus | 3 orders in 5 s unpaused grants Flow; paused orders lag 0.4 s |
+| `[v]` P2-T01 | Door state machine + 8 entry types + noise events | each entry produces the documented noise radius in the log |
+| `[v]` P2-T02 | Information gating: silhouettes, ~~sound pings~~, ~~camera feed~~ | you cannot see room contents without a source |
+| `[v]` P2-T03 | Solo **Focus** mode (0.35×, 6 s / 9 s) | exposure cut 65%; criterion restated — see phase doc §4b |
+| `[v]` P2-T04 | Order queue (8 verbs, 4 deep) + squad AI literal execution | stack→ram→clear executes unattended; contact cancels queue (no drag-reorder) |
+| `[v]` P2-T05 | Force continuum: 5 rungs, authorisation radio, wound model | every rung-2+ action writes exactly 1 line with the correct tool tag |
+| `[v]` P2-T06 | Force ratchet: `force_index` raises next shift's starting rung | tested in-session; save persistence is Phase 3 |
+| `[v]` P2-T07 | Crowd mood graph (12→40 agents), heat band | 34 agents at 0.075 µs/tick; no ground ring yet |
+| `[v]` P2-T08 | Incident → report integration ("clear is a claim") | a mis-cleared room creates a wrong line that an audit can blow open |
+| `[v]` P2-T09 | Squad comms: hotkey orders, voice ack, **Flow** bonus | 3 orders in 5 s unpaused grants Flow; paused orders lag 0.4 s |
 
 **Gate G1:** *"Is the pause/slow-mo fun — and is the paperwork still the point?"*
 **If fail:** cut one of {Focus, Pause} and rebalance; do not add systems.

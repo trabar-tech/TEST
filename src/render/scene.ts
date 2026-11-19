@@ -49,6 +49,8 @@ export interface SceneHandle {
   draw(sim: Renderable, opts: { cursor: Vec2 | null; cursorValid: boolean }): void;
   /** viewport CSS pixel → world units, using the live camera */
   toWorld(clientX: number, clientY: number): Vec2;
+  /** world units → viewport CSS pixel, for DOM furniture pinned to the ground */
+  toScreen(wx: number, wy: number): Vec2;
   destroy(): void;
 }
 
@@ -142,6 +144,10 @@ export async function createScene(sim: Renderable, host: HTMLElement): Promise<S
     toWorld(clientX, clientY) {
       const rect = app.canvas.getBoundingClientRect();
       return screenToWorld(cam, clientX - rect.left, clientY - rect.top);
+    },
+
+    toScreen(wx, wy) {
+      return { x: wx * cam.scale + cam.ox, y: wy * cam.scale + cam.oy };
     },
 
     draw(current, opts) {

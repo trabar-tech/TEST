@@ -1,0 +1,36 @@
+{
+  "id": "inc_flat14_events",
+  "note": "Incident anchors on the Phase 1 street slice: where a tactical incident can start from the beat. One flat, one street corner. Kept beside the street map so the encounter and the street cannot drift apart.",
+  "anchors": [
+    {
+      "id": "flat14",
+      "label": "Block C, flat fourteen",
+      "x": 12,
+      "y": 8,
+      "interior": "int_tenement_flat14",
+      "address": "Block C, flat fourteen",
+      "brief": "A neighbour called in a printing press that runs all night. The stair door is barred from the inside.",
+      "quota": 1
+    },
+    {
+      "id": "canal_market",
+      "label": "Canal market corner",
+      "x": 30,
+      "y": 20,
+      "crowd": {
+        "id": "crowd:canal_market",
+        "label": "canal market",
+        "agents": 34,
+        "heat": 0.24,
+        "leaders": [
+          "c-0117"
+        ],
+        "grievance": "ration_cut",
+        "state": "milling"
+      },
+      "address": "Canal market, south corner",
+      "brief": "Ration cut at the depot this morning. Two hundred people, no permit, and one of the organisers is on the list.",
+      "quota": 1
+    }
+  ]
+}

@@ -349,3 +349,44 @@ export function deepFreeze<T>(value: T): T {
   }
   return value;
 }
+
+/* --------------------------------------------------------- incidents (P2) */
+
+const CrowdSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    agents: z.number().int().min(1).max(80),
+    heat: z.number().min(0).max(1),
+    leaders: z.array(z.string()).default([]),
+    grievance: z.string().min(1),
+    state: z.enum(['milling', 'chanting', 'surging', 'scattering', 'riot', 'dispersing']),
+  })
+  .strict();
+
+const IncidentAnchorSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    x: z.number().int().min(0),
+    y: z.number().int().min(0),
+    interior: z.string().optional(),
+    crowd: CrowdSchema.optional(),
+    address: z.string().min(1),
+    brief: z.string().min(1),
+    quota: z.number().int().min(0).max(3).default(1),
+  })
+  .strict()
+  .refine((a) => Boolean(a.interior) !== Boolean(a.crowd), {
+    message: 'an anchor has exactly one of: interior, crowd',
+  });
+
+export const IncidentAnchorsSchema = z
+  .object({
+    id: z.string().min(1),
+    note: z.string().optional(),
+    anchors: z.array(IncidentAnchorSchema).min(1),
+  })
+  .strict();
+
+export type IncidentAnchors = z.infer<typeof IncidentAnchorsSchema>;

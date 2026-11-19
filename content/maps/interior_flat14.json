@@ -1,0 +1,204 @@
+{
+  "id": "int_tenement_flat14",
+  "name": "Block C, flat fourteen \u2014 unlicensed printing",
+  "note": "P2-T01/P2-T02/P2-T08 test map. Three rooms off a corridor, two doors out, one barred. Bed-sitting room hides a printer; the north room has a wardrobe a man can stand in, which is how 'clear' becomes a claim.",
+  "tileSize": 32,
+  "width": 32,
+  "height": 20,
+  "rows": [
+    "################################",
+    "#..............................#",
+    "#.############################.#",
+    "#.#.............#............#.#",
+    "#.#.............#............#.#",
+    "#.#.............#............#.#",
+    "#.#.............#............#.#",
+    "#.#.............#............#.#",
+    "#.#.............#............#.#",
+    "#.#####.############.#########.#",
+    "#.#..........................#.#",
+    "#.#..........#...............#.#",
+    "#.#..........#...............#.#",
+    "#.#..........#...............#.#",
+    "#.#..........#...............#.#",
+    "#.#..........#...............#.#",
+    "#.#..........#...............#.#",
+    "#.######.#####################.#",
+    "#..............................#",
+    "################################"
+  ],
+  "legend": {
+    ".": "floor",
+    "#": "wall",
+    "+": "doorway"
+  },
+  "entry_points": [
+    {
+      "id": "kitchen",
+      "label": "kitchen door",
+      "x": 8,
+      "y": 18
+    },
+    {
+      "id": "stair",
+      "label": "stair door",
+      "x": 13,
+      "y": 14
+    },
+    {
+      "id": "roof",
+      "label": "roof hatch",
+      "x": 22,
+      "y": 8
+    }
+  ],
+  "rooms": [
+    {
+      "id": "north",
+      "label": "front room",
+      "x": 4,
+      "y": 3,
+      "w": 12,
+      "h": 6,
+      "doors": [
+        "d_front"
+      ]
+    },
+    {
+      "id": "bsr",
+      "label": "bed-sitting room",
+      "x": 18,
+      "y": 3,
+      "w": 10,
+      "h": 6,
+      "doors": [
+        "d_bsr"
+      ]
+    },
+    {
+      "id": "hall",
+      "label": "corridor",
+      "x": 4,
+      "y": 10,
+      "w": 24,
+      "h": 1,
+      "doors": [
+        "d_front",
+        "d_bsr",
+        "d_kitchen"
+      ]
+    },
+    {
+      "id": "south_w",
+      "label": "south room",
+      "x": 4,
+      "y": 11,
+      "w": 8,
+      "h": 6,
+      "doors": [
+        "d_kitchen",
+        "d_south"
+      ]
+    },
+    {
+      "id": "south_e",
+      "label": "back room",
+      "x": 14,
+      "y": 11,
+      "w": 14,
+      "h": 6,
+      "doors": [
+        "d_south"
+      ]
+    }
+  ],
+  "doors": [
+    {
+      "id": "d_front",
+      "x": 7,
+      "y": 9,
+      "state": "closed",
+      "rooms": [
+        "north",
+        "hall"
+      ],
+      "appearance": "plain"
+    },
+    {
+      "id": "d_bsr",
+      "x": 20,
+      "y": 9,
+      "state": "locked",
+      "rooms": [
+        "bsr",
+        "hall"
+      ],
+      "appearance": "plain"
+    },
+    {
+      "id": "d_kitchen",
+      "x": 8,
+      "y": 17,
+      "state": "barred",
+      "rooms": [
+        "south_w",
+        "hall"
+      ],
+      "appearance": "barred"
+    },
+    {
+      "id": "d_south",
+      "x": 13,
+      "y": 13,
+      "state": "closed",
+      "rooms": [
+        "south_w",
+        "south_e"
+      ],
+      "appearance": "plain"
+    }
+  ],
+  "hostiles": [
+    {
+      "id": "h-01",
+      "archetype": "armed",
+      "post": [
+        22,
+        5
+      ],
+      "room": "bsr",
+      "stationary": true
+    },
+    {
+      "id": "h-02",
+      "archetype": "unarmed",
+      "post": [
+        9,
+        5
+      ],
+      "room": "north",
+      "hides_in": "wardrobe",
+      "stationary": true
+    },
+    {
+      "id": "h-03",
+      "archetype": "unarmed",
+      "post": [
+        20,
+        14
+      ],
+      "room": "south_e",
+      "stationary": true
+    }
+  ],
+  "cameras": [
+    {
+      "id": "cam:stairwell",
+      "label": "stairwell",
+      "x": 12,
+      "y": 10,
+      "w": 5,
+      "h": 2
+    }
+  ]
+}

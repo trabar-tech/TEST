@@ -15,6 +15,7 @@ import { join, relative } from 'node:path';
 import {
   AuthoredCastSchema,
   BarksSchema,
+  IncidentAnchorsSchema,
   ContentError,
   ContentVersion,
   formatIssues,
@@ -23,6 +24,10 @@ import {
 import { mapJsonToDef, loadBundle, type MapJson } from './lib/load-content';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
+
+/** interior map ids seen, and the interiors an anchor promised: checked at the end */
+const interiorIds = new Set<string>();
+const interiors: string[] = [];
 
 function walk(dir: string, ext: string): string[] {
   const out: string[] = [];
@@ -103,8 +108,30 @@ for (const file of contentFiles) {
     continue;
   }
 
+  // incident anchors: the bridge from street to tactical scene (P2)
+  if ('anchors' in shape) {
+    const parsed = IncidentAnchorsSchema.safeParse(raw);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        fail(`${rel} — ${issue.path.join('.') || '(root)'}: ${issue.message}`);
+      }
+    } else {
+      const ids = new Set<string>();
+      for (const a of parsed.data.anchors) {
+        if (ids.has(a.id)) fail(`${rel} — duplicate anchor id ${a.id}`);
+        ids.add(a.id);
+        if (a.interior) interiors.push(a.interior);
+      }
+      console.log(`  · ${rel} — ${parsed.data.anchors.length} anchors`);
+    }
+    continue;
+  }
+
   // a map file has `rows`, a content bundle does not
   if ('rows' in shape) {
+    if (typeof shape.id === 'string' && 'rooms' in shape && 'hostiles' in shape) {
+      interiorIds.add(shape.id);
+    }
     try {
       mapJsonToDef(raw as MapJson);
       console.log(`  · ${rel} — map ok`);
@@ -138,6 +165,12 @@ for (const file of contentFiles) {
     if (e instanceof ContentError) fail(e.message);
     else fail(`${rel} — ${(e as Error).message}`);
   }
+}
+
+/* ------------------------------------------------------- cross-file checks */
+
+for (const wanted of interiors) {
+  if (!interiorIds.has(wanted)) fail(`an incident anchor points at interior "${wanted}", which no map file declares`);
 }
 
 /* -------------------------------------------------------------------- summary */

@@ -18,7 +18,7 @@ candidate), deliverables, and the playtest gate script.
 |---|---|---|---|---|
 | 0 · Harness | `01-phase-0-harness.md` | 2–4 | — | can we even loop deterministically? — **done 2026-11-18** |
 | 1 · The Record | `02-phase-1-record-slice.md` | 5–8 | **G0** | do I care about what I write? — **built 2026-11-18, gate pending** |
-| 2 · Tactical | `03-phase-2-tactical.md` | 6–9 | **G1** | is the pause fun, and is the paper still the point? |
+| 2 · Tactical | `03-phase-2-tactical.md` | 6–9 | **G1** | is the pause fun, and is the paper still the point? — **built 2026-11-18, gate pending** |
 | 3 · Sim & directors | `04-phase-3-sim-directors.md` | 7–10 | **G2** | does the city feel alive and unfair in the right way? |
 | 4 · Campaign | `05-phase-4-campaign.md` | 6–8 | **G3** | would I finish this twice? |
 | 5 · Release | `06-phase-5-release.md` | 4–6 | — | does it run on a normal laptop? |

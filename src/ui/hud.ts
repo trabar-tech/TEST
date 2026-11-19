@@ -61,7 +61,8 @@ export function createHud(sim: Simulation, host: HTMLElement): HudHandle {
     'div',
     'position:absolute;left:10px;bottom:10px;font:10px/1.7 ui-monospace,monospace;color:#4f5c68;pointer-events:none;white-space:pre',
   );
-  keys.textContent = 'E  the desk\nC  the case file\n1-4  timescale\n`  diagnostics';
+  keys.textContent =
+    'E  the desk\nC  the case file\nF  the flat\nRMB  focus (solo)\n1-8  orders in a scene\n1-4  timescale on the street\n`  diagnostics';
   keys.style.opacity = '0.75';
 
   root.append(bar, quota, plate, prompt, banner, radioBox, ambientBox, keys);

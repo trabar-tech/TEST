@@ -7,8 +7,11 @@ builds the world.
 > **Thesis:** you don't choose what to do — you choose what gets *recorded*, and the city is
 > built out of records.
 
-**Status:** Phase 1 (The Record) built — one full shift: walk Kiln Row, inspect six citizens, file
-the docket, get audited. Gate G0 (three untrained testers) has not been run.
+**Status:** Phases 1 and 2 built. One full shift: walk Kiln Row, inspect six citizens, file the
+docket, get audited — and, at either of the two marked corners, go into a flat and clear it, then
+file *that* on the same docket. Gates **G0 and G1 have not been run** (both need three human
+testers; see `docs/03-production/phases/02-phase-1-record-slice.md` §6 and
+`03-phase-2-tactical.md` §6d).
 **Target:** single-player · PC · browser-first (WebGL2) · keyboard + mouse.
 
 ## Start here
@@ -41,13 +44,26 @@ build wins and the doc is fixed in the same session. Full conventions:
 ```bash
 npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
-                   # E opens the desk early, C opens the case file, 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 223 tests (determinism, saves, Record, audit, UI, playthrough)
+                   # E opens the desk early, C opens the case file, F enters the flat,
+                   # 1-4 timescale, ` diagnostics
+npm run verify     # typecheck + 335 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
 
-What exists today is one complete shift. The harness underneath it: a fixed 60 Hz sim, seeded RNG
+What exists today is one complete shift plus the tactical layer that feeds it. **Key bindings:**
+on the street — click to walk, click a citizen to inspect, `E` the desk, `C` the case file,
+`F` the flat, `1`–`4` timescale, `` ` `` diagnostics. In an incident — `1`–`8` are the eight orders
+(hold, move, stack, breach, clear, detain, escalate, withdraw), `Esc` ends it, and holding the
+**right mouse button** is Focus when you have no squad.
+
+The tactical layer's one rule, visible on the incident screen: **the form never leaves the frame.**
+A "will be filed" strip runs down the right of the plan while you are still deciding, so choosing
+the shotgun is visibly choosing a sentence in a report. The audit then reads the scene's own log —
+the noise a neighbour heard, the door you took off its frame, the man nobody found — and an honest
+line never meets it (guaranteed by `tests/tactical-honest.test.ts`: 7 honest scripts × 25 seeds).
+
+The harness underneath it: a fixed 60 Hz sim, seeded RNG
 with save-carried stream positions, an ECS-lite world, A* with body-radius collision, a versioned
 save envelope. On top of that, the thing the game is actually about: **the city is simulated from
 what you wrote, not from what happened.** The audit catches what the exposure gutter warned you
