@@ -46,16 +46,18 @@ npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
                    # E opens the desk early, C opens the case file, F enters the flat,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 335 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 358 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
 
 What exists today is one complete shift plus the tactical layer that feeds it. **Key bindings:**
 on the street — click to walk, click a citizen to inspect, `E` the desk, `C` the case file,
-`F` the flat, `1`–`4` timescale, `` ` `` diagnostics. In an incident — `1`–`8` are the eight orders
-(hold, move, stack, breach, clear, detain, escalate, withdraw), `Esc` ends it, and holding the
-**right mouse button** is Focus when you have no squad.
+`F` the flat, `1`–`4` timescale, `P` the playtest script, `` ` `` diagnostics. Append `?playlist`
+to the URL to run the G1 session (`docs/03-production/phases/02b-phase-1-2-debt.md`).
+In an incident — `1`–`8` are the eight orders (hold, move, stack, breach, clear, detain, escalate,
+withdraw), `Esc` ends it, clicking an order chip moves it to the front of the queue,
+shift-clicking drops it, and holding the **right mouse button** is Focus when you have no squad.
 
 The tactical layer's one rule, visible on the incident screen: **the form never leaves the frame.**
 A "will be filed" strip runs down the right of the plan while you are still deciding, so choosing

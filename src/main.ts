@@ -34,9 +34,18 @@ import { createCaseFile } from '@ui/case-file';
 import { Barks, type BarkSet } from '@systems/barks';
 import { Incident } from '@systems/tactical/incident';
 import { createIncidentView } from '@ui/incident-view';
+import { createPlaylist } from '@ui/playlist';
+import {
+  describeSector,
+  forceIndexOf,
+  nextShift as advanceSector,
+  readSector,
+  recordForce,
+} from '@systems/sector';
 import { ORDER_HOTKEYS, type OrderKind } from '@systems/tactical/types';
 import { stepCrowd, type CrowdDef } from '@systems/tactical/crowd';
 import { crowdDocket } from '@systems/tactical/paperwork';
+import { drawCrowdRing } from '@render/plan';
 import type { InteriorMapJson } from '@systems/tactical/types';
 import { button, el } from '@ui/dom';
 
@@ -92,6 +101,7 @@ async function start(): Promise<void> {
 
   const { storage, kind, warning } = await createBrowserStorage();
   const params = new URLSearchParams(location.search);
+  const wantsPlaylist = params.has('playlist');
   const seed = Number(params.get('seed') ?? 20261118) || 20261118;
 
   const sim = new Simulation({
@@ -140,7 +150,9 @@ async function start(): Promise<void> {
   let incident: Incident | null = null;
   let incidentView: ReturnType<typeof createIncidentView> | null = null;
   let crowd: CrowdDef | null = null;
-  let forceIndex = { sector: 'kiln_row', value: 0 };
+  // the sector's memory lives on the save, not in this closure: a reload that
+  // forgets the ratchet would quietly delete the tactical layer's whole claim
+  let forceIndex = forceIndexOf(sim.state);
 
   /* ------------------------------------------------------------------ ui */
   // declared here, before anything can call into them: `showAnchors` is invoked
@@ -169,6 +181,23 @@ async function start(): Promise<void> {
     debrief = null;
     briefingEl?.remove();
     briefingEl = null;
+  }
+
+  let playlist: ReturnType<typeof createPlaylist> | null = null;
+
+  /**
+   * The G1 protocol. Opened deliberately (`?playlist`, or `P`), never in the way:
+   * a tester following the script should never have to be told what to do next by
+   * a person, because a protocol that needs a designer present is a demo.
+   */
+  function openPlaylist(): void {
+    if (playlist) return;
+    playlist = createPlaylist(host, {
+      onClose: () => {
+        playlist = null;
+      },
+      runId: `run-${seed}`,
+    });
   }
 
   function showBriefing(): void {
@@ -448,7 +477,13 @@ async function start(): Promise<void> {
     });
 
     // the ratchet: this scene changes what the sector is like next shift
-    forceIndex = { sector: forceIndex.sector, value: forceIndex.value + result.forceUsed.reduce((a, f) => a + (f.rung === 5 ? 9 : f.rung === 4 ? 6 : f.rung === 3 ? 2.5 : 1), 0) };
+    const weight = result.forceUsed.reduce(
+      (a, f) => a + (f.rung === 5 ? 9 : f.rung === 4 ? 6 : f.rung === 3 ? 2.5 : 1),
+      0,
+    );
+    const memory = recordForce(sim.state, weight);
+    forceIndex = { sector: memory.sector, value: memory.force };
+    hud.announce(`SECTOR FORCE ${memory.force.toFixed(1)} · ${describeSector(memory)}`, 3600);
 
     incidentView?.destroy();
     incidentView = null;
@@ -457,6 +492,42 @@ async function start(): Promise<void> {
     hud.announce('INCIDENT CLOSED · ONE LINE TO FILE', 3000);
     hud.radio('Overwatch: I have the log. The desk will want it in your words.');
     openDesk();
+  }
+
+  /**
+   * The market's temperature, drawn on the street as a ground ring. It exists so
+   * that a crowd is *weather you can see from down the road*, not a bar in a modal
+   * you have to open to check. No number is ever shown.
+   */
+  let crowdRingCanvas: HTMLCanvasElement | null = null;
+
+  function paintCrowdRing(): void {
+    const anchor = anchors.find((a) => a.id === 'canal_market') as { x: number; y: number } | undefined;
+    if (!anchor || sim.phase !== 'beat') {
+      crowdRingCanvas?.remove();
+      crowdRingCanvas = null;
+      return;
+    }
+    if (!crowdRingCanvas) {
+      crowdRingCanvas = document.createElement('canvas');
+      crowdRingCanvas.style.cssText =
+        'position:absolute;inset:0;pointer-events:none;z-index:5;width:100%;height:100%';
+      host.append(crowdRingCanvas);
+    }
+    const c = crowdRingCanvas;
+    const w = host.clientWidth;
+    const h = host.clientHeight;
+    if (c.width !== w || c.height !== h) {
+      c.width = w;
+      c.height = h;
+    }
+    const ctx = c.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, w, h);
+    const wpos = map.toWorld(anchor.x, anchor.y);
+    const p = scene.toScreen(wpos.x, wpos.y);
+    const heat = crowd?.heat ?? 0.24;
+    drawCrowdRing(ctx, { x: p.x, y: p.y }, 46 + heat * 40, heat, performance.now() / 1000);
   }
 
   function openDesk(): void {
@@ -471,7 +542,7 @@ async function start(): Promise<void> {
     const result = sim.submit();
     desk?.destroy();
     desk = null;
-    debrief = createDebrief(sim, host, { onRestart: nextShift });
+    debrief = createDebrief(sim, host, { onRestart: beginNextShift });
     debrief.render(result);
   }
 
@@ -480,7 +551,7 @@ async function start(): Promise<void> {
    * scene and carries the *belief* forward — which is the only thing that has to
    * be true for the loop to be real.
    */
-  function nextShift(): void {
+  function beginNextShift(): void {
     clearUi();
     debrief?.destroy();
     debrief = null;
@@ -489,6 +560,8 @@ async function start(): Promise<void> {
     sim.docket.length = 0;
     sim.inspectionsDone = 0;
     sim.state.shift += 1;
+    const sector = advanceSector(sim.state);
+    forceIndex = { sector: sector.memory.sector, value: sector.memory.force };
     sim.phase = 'brief';
     sim.clock.restore({ tick: 0, simSeconds: 0, mode: 'pause' });
     sim.emit('shift:next', {
@@ -499,7 +572,10 @@ async function start(): Promise<void> {
     // rebuild the street at its posts; the record survives, the people reset
     sim.resetBeat();
     showBriefing();
-    hud.announce(`SHIFT ${sim.state.shift}`, 3000);
+    hud.announce(
+      `SHIFT ${sim.state.shift} · ${readSector(sim.state).force.toFixed(1)} SECTOR FORCE`,
+      3400,
+    );
   }
 
   /* --------------------------------------------------------------- input */
@@ -583,6 +659,9 @@ async function start(): Promise<void> {
     if ((e.key === 'e' || e.key === 'E') && sim.phase === 'beat') {
       openDesk();
     }
+    if ((e.key === 'p' || e.key === 'P') && !e.ctrlKey && !e.metaKey) {
+      openPlaylist();
+    }
     if ((e.key === 'f' || e.key === 'F') && sim.phase === 'beat' && !incident && !desk) {
       openIncident('flat14');
     }
@@ -630,6 +709,8 @@ async function start(): Promise<void> {
       else hud.ambient(bark.text);
     }
 
+    if (crowdRingCanvas || sim.phase === 'beat') paintCrowdRing();
+
     fpsAccum += dt;
     fpsFrames += 1;
     if (fpsAccum >= 500) {
@@ -659,6 +740,7 @@ async function start(): Promise<void> {
   sim.clock.start();
   requestAnimationFrame(frame);
   showBriefing();
+  if (wantsPlaylist) window.setTimeout(openPlaylist, 400);
   overlay.flash('briefing · click Begin the shift');
 
   if (import.meta.env.DEV) {

@@ -113,6 +113,12 @@ export class Incident {
   readonly contacts: OfficerContact[] = [];
 
   visibilities = new Map<string, RoomVisibility>();
+  /**
+   * Rooms a unit has *claimed* clear. Kept as its own record because the claim is
+   * the thing the player is answerable for, and it must survive the moment the
+   * scene ends: `result()` reads it back as roomClaims.
+   */
+  clearClaims = new Map<string, boolean>();
   authorisation: Authorisation | null = null;
   tick = 0;
   simSeconds = 0;
@@ -291,6 +297,9 @@ export class Incident {
     const claimable = hidden.filter((h) => !h.hiding && h.spotted).length === 0;
     const actuallyClear = hidden.length === 0;
     for (const h of hidden) if (!h.hiding && h.spotted) h.cleared = true;
+    // the claim is sticky: a room reported clear stays reported clear, even if
+    // somebody later proves it was not. That is what makes it a claim.
+    if (claimable) this.clearClaims.set(roomId, true);
     return { claimed: claimable, actuallyClear };
   }
 
@@ -529,8 +538,14 @@ export class Incident {
     const roomClaims = [...this.rooms.keys()]
       .filter((id) => this.visibilities.get(id) === 'known')
       .map((room) => {
-        const res = this.clearRoom(room);
-        return { room, claimedClear: res.claimed, actuallyClear: res.actuallyClear };
+        // recompute the *fact*, but never re-derive the *claim*: a room the
+        // player reported clear stays on the record as reported clear
+        const hidden = [...this.hostiles.values()].filter(
+          (h) => h.room === room && h.wound !== 'dead' && h.wound !== 'down' && !h.detained,
+        );
+        const actuallyClear = hidden.length === 0;
+        const claimedClear = this.clearClaims.get(room) === true;
+        return { room, claimedClear, actuallyClear };
       });
 
     const unfound = [...this.hostiles.values()]

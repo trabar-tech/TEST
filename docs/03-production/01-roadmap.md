@@ -100,6 +100,9 @@ Gate G1.
 | `[v]` P2-T08 | Incident → report integration ("clear is a claim") | a mis-cleared room creates a wrong line that an audit can blow open |
 | `[v]` P2-T09 | Squad comms: hotkey orders, voice ack, **Flow** bonus | 3 orders in 5 s unpaused grants Flow; paused orders lag 0.4 s |
 
+**Phase 2b (debt):** `[v]` G1 playlist harness · `[v]` sector/force persistence · `[v]` plan
+renderer · `[v]` crowd ring · `[v]` queue reorder — see `phases/02b-phase-1-2-debt.md`.
+
 **Gate G1:** *"Is the pause/slow-mo fun — and is the paperwork still the point?"*
 **If fail:** cut one of {Focus, Pause} and rebalance; do not add systems.
 

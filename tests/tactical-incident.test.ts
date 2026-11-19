@@ -174,6 +174,18 @@ describe('officers as literal executors', () => {
     expect(squad.flowUntil).toBe(2 + 8);
   });
 
+  it('a plan can be rewritten: reorder moves one order and keeps the rest', () => {
+    const squad = new Squad({ map: MAP, officers: OFFICERS, spawns, rng: streamFor(4, 1, 't') });
+    squad.order('o-01', { kind: 'move', at: { x: 8 * 32, y: 15 * 32 } }, 0);
+    squad.order('o-01', { kind: 'hold' }, 0);
+    squad.order('o-01', { kind: 'clear', room: 'south_w' }, 0);
+    expect(squad.reorder('o-01', 2, 0)).toBe(true);
+    expect(squad.get('o-01')!.queue.map((q) => q.kind)).toEqual(['clear', 'move', 'hold']);
+    expect(squad.reorder('o-01', 9, 0)).toBe(false);
+    expect(squad.cancel('o-01', 1)).toBe(true);
+    expect(squad.get('o-01')!.queue.map((q) => q.kind)).toEqual(['clear', 'hold']);
+  });
+
   it('paused orders are a little slower to acknowledge, which is the cost of planning', () => {
     const squad = new Squad({ map: MAP, officers: OFFICERS, spawns, rng: streamFor(1, 1, 't') });
     squad.order('o-01', { kind: 'hold', paused: true }, 10);

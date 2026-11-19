@@ -205,7 +205,8 @@ mechanics make that literally true.**
 > below as a 7-action reducer over `heat` with hysteresis thresholds
 > (chant 0.35 / surge 0.6 / riot 0.85). 34 agents cost **0.075 µs/tick** — the mood
 > graph is deliberately not a simulation of 34 bodies, and that is the point of it.
-> The ground ring is a bar for now; see the Phase 2 doc §6b item 7.
+> The ground ring is now a real ground ring (`drawCrowdRing` in `src/render/plan.ts`), drawn on
+> the street so a crowd reads as weather rather than as a number in a modal.
 
 ## 6. Crowds
 

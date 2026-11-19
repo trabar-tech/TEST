@@ -144,6 +144,21 @@ export function stepCrowd(crowd: CrowdDef, action: CrowdAction): CrowdOutcome {
   };
 }
 
+/**
+ * The ground ring as the renderer needs it: a colour and a radius, not a number.
+ * Kept here rather than in the renderer so the *meaning* of the bands is one
+ * definition, shared by the HUD, the ring and the tests.
+ */
+export const HEAT_RING: Record<
+  'calm' | 'warm' | 'hot' | 'critical',
+  { colour: string; alpha: number; pulse: number }
+> = {
+  calm: { colour: '#5f8fa8', alpha: 0.18, pulse: 0 },
+  warm: { colour: '#d8b06a', alpha: 0.28, pulse: 0.4 },
+  hot: { colour: '#d87a4a', alpha: 0.4, pulse: 0.9 },
+  critical: { colour: '#a8493f', alpha: 0.55, pulse: 1.6 },
+};
+
 /** Readability: the ring on the ground, blue to red. Never a number. */
 export function heatBand(heat: number): 'calm' | 'warm' | 'hot' | 'critical' {
   if (heat > HEAT_THRESHOLDS.riot) return 'critical';

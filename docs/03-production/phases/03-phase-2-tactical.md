@@ -266,6 +266,11 @@ breach, and whether they *wanted* a squad.
    *checkpoint/inspection-only* game with incidents resolved as text-plus-consequence — cheaper,
    still on-thesis. Write the ADR before proceeding.
 
+> **Closed in Phase 2b** (`02b-phase-1-2-debt.md`): the plan renderer (§6b item 3), the crowd
+> ring (§6b item 7), `force_index` persistence (§6b item 6), drag-reorder of the queue, and — the
+> important one — a runnable G1 protocol. Items 1, 2, 4 and 5 below are still open, and item 1
+> cannot be closed by a machine.
+
 ## 6b. What is NOT done
 
 Named plainly, because a phase doc that only lists wins is a marketing document.

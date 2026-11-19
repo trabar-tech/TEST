@@ -106,12 +106,22 @@ const BSR = 1;
 
 describe('the incident screen', () => {
   it('shows a silhouette for every room before you go in, and no contents', () => {
-    const { view } = mount();
+    const { view, host } = mount();
     const text = view.root.textContent ?? '';
-    expect(text).toContain('· · ·');
     expect(text).not.toContain('subject(s) visible');
     // the architectural read is present: that is the information gating
     expect(text).toMatch(/barred|door closed|reinforced|ajar/);
+    // and the plan itself is a canvas the renderer owns, in world coordinates
+    expect(host.querySelector('canvas')).not.toBeNull();
+  });
+
+  it('draws the plan without throwing, in every state it can be asked to draw', () => {
+    const { view, host } = mount();
+    const canvas = host.querySelector('canvas') as HTMLCanvasElement;
+    expect(canvas.width).toBeGreaterThan(0);
+    click(host, 'Ram', BSR);
+    click(host, '2');
+    expect(() => view.render()).not.toThrow();
   });
 
   it('the "will be filed" strip is on screen while you plan', () => {
@@ -208,3 +218,44 @@ describe('the incident screen', () => {
     expect(planSignature(inc)).toBe(planSignature(inc));
   });
 });
+
+describe('the comms strip is the plan, editable', () => {
+  it('shows each queued order as a chip and moves it to the front on click', () => {
+    const { inc, host } = mount();
+    inc.issue({ kind: 'move', at: { x: 8 * 32, y: 15 * 32 } }, 'o-01');
+    inc.issue({ kind: 'hold' }, 'o-01');
+    inc.issue({ kind: 'clear', room: 'south_w' }, 'o-01');
+    // the view repaints the comms strip from the squad's queue
+    const view = createIncidentView(inc, host, noopCallbacks(), { address: 'x' });
+    view.render();
+    const chips = [...host.querySelectorAll('span')].filter((s) => /^(move|hold|clear)$/.test((s.textContent ?? '').trim()));
+    expect(chips.length).toBeGreaterThanOrEqual(3);
+    const clear = chips.find((c) => c.textContent === 'clear')!;
+    clear.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(inc.squad!.get('o-01')!.queue[0]!.kind).toBe('clear');
+  });
+
+  it('a shift-click drops that order from the plan', () => {
+    const { inc, host } = mount();
+    inc.issue({ kind: 'hold' }, 'o-02');
+    inc.issue({ kind: 'clear', room: 'south_w' }, 'o-02');
+    const view = createIncidentView(inc, host, noopCallbacks(), { address: 'x' });
+    view.render();
+    const chip = [...host.querySelectorAll('span')].find((s) => s.textContent === 'hold')!;
+    chip.dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }));
+    expect(inc.squad!.get('o-02')!.queue.map((q) => q.kind)).toEqual(['clear']);
+  });
+});
+
+function noopCallbacks() {
+  return {
+    onEnter: () => {},
+    onClear: () => {},
+    onOrder: () => {},
+    onForce: () => {},
+    onDetain: () => {},
+    onAuthorise: () => {},
+    onStabilise: () => {},
+    onEnd: () => {},
+  };
+}

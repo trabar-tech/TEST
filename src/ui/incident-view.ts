@@ -15,6 +15,7 @@ import type { Vec2 } from '@core/nav';
 import type { Incident, HostileState } from '@systems/tactical/incident';
 import { ENTRY_METHODS, type EntryMethod } from '@systems/tactical/doors';
 import { RUNG_LABEL, SOLO_ORDERS, type ForceRung, type OrderKind } from '@systems/tactical/types';
+import { createPlan } from '@render/plan';
 import { FONT_MONO, button, el } from './dom';
 
 const C = {
@@ -47,71 +48,10 @@ export interface IncidentHandle {
 }
 
 /**
- * Paint the interior once, as a canvas of coloured boxes. Known rooms are lit;
- * unknown rooms are silhouettes: you can see the walls and the shape of the flat,
- * never the contents. That single rule is the information gating (P2-T02).
+ * The plan is a canvas of its own (see `src/render/plan.ts`): the incident screen
+ * is a document with a map in it, and it must never eat the text cursor. What this
+ * function does is size it and hand it to the layout.
  */
-function drawPlan(inc: Incident): HTMLDivElement {
-  const box = el('div', `position:relative;background:${C.floor};border:1px solid rgba(120,140,160,.22);border-radius:2px;overflow:hidden`);
-  const map = inc.map;
-  const t = 9;
-  box.style.width = `${map.width * t}px`;
-  box.style.height = `${map.height * t}px`;
-
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      if (map.isWalkable(x, y)) continue;
-      const px = el('div', `position:absolute;left:${x * t}px;top:${y * t}px;width:${t}px;height:${t}px;background:${C.wall}`);
-      box.append(px);
-    }
-  }
-
-  for (const room of inc.json.rooms) {
-    const known = inc.visibilities.get(room.id) === 'known';
-    const claim = el(
-      'div',
-      `position:absolute;left:${room.x * t}px;top:${room.y * t}px;width:${room.w * t}px;height:${room.h * t}px;border:1px ${known ? 'solid' : 'dashed'} ${known ? 'rgba(216,176,106,.45)' : 'rgba(127,141,155,.22)'};background:${known ? `${C.known}` : 'transparent'};display:flex;align-items:flex-start;justify-content:flex-start;padding:2px;pointer-events:none`,
-    );
-    claim.append(
-      el('span', `font:7.5px ${FONT_MONO};letter-spacing:.08em;color:${known ? C.gold : C.faint};text-transform:uppercase;white-space:nowrap`, known ? room.label : '· · ·'),
-    );
-    box.append(claim);
-  }
-
-  for (const door of inc.doors.values()) {
-    const state = door.state;
-    const colour = state === 'open' || state === 'breached' ? C.gold : state === 'barred' ? C.red : C.dim;
-    box.append(
-      el('div', `position:absolute;left:${door.x * t - 1}px;top:${door.y * t}px;width:${t + 2}px;height:${t}px;background:${colour};opacity:${state === 'open' || state === 'breached' ? 0.85 : 0.55}`),
-    );
-  }
-
-  for (const h of inc.hostiles.values()) {
-    if (!h.spotted) continue;
-    const colour = h.wound === 'dead' ? C.faint : h.detained ? C.green : h.archetype === 'armed' ? C.red : C.ink;
-    const dot = el(
-      'div',
-      `position:absolute;left:${(h.pos.x / inc.map.tileSize) * t - 2.5}px;top:${(h.pos.y / inc.map.tileSize) * t - 2.5}px;width:5px;height:5px;border-radius:50%;background:${colour}`,
-    );
-    dot.title = `${h.id} · ${h.archetype}${h.detained ? ' · detained' : ''}`;
-    box.append(dot);
-  }
-
-  if (inc.squad) {
-    for (const unit of inc.squad.all()) {
-      box.append(
-        el('div', `position:absolute;left:${(unit.pos.x / inc.map.tileSize) * t - 2}px;top:${(unit.pos.y / inc.map.tileSize) * t - 2}px;width:4px;height:4px;background:#d8dee6`),
-      );
-    }
-  }
-
-  // the Warden, when solo
-  box.append(
-    el('div', `position:absolute;left:${(inc.warden.x / inc.map.tileSize) * t - 2.5}px;top:${(inc.warden.y / inc.map.tileSize) * t - 2.5}px;width:5px;height:5px;background:${C.gold};border-radius:1px`),
-  );
-  return box;
-}
-
 export function createIncidentView(
   inc: Incident,
   host: HTMLElement,
@@ -135,6 +75,8 @@ export function createIncidentView(
   middle.append(header);
 
   const planHolder = el('div', 'display:flex;justify-content:center;width:100%');
+  const plan = createPlan(inc, 460);
+  planHolder.append(plan.canvas);
   middle.append(planHolder);
 
   const footer = el('div', `display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;margin-top:2px`);
@@ -203,7 +145,7 @@ export function createIncidentView(
 
   // ------------------------------------------------------------ middle: actions
   function renderMiddle(): void {
-    planHolder.replaceChildren(drawPlan(inc));
+    plan.draw();
 
     footer.replaceChildren();
     const verbs: OrderKind[] = inc.hasSquad ? ['stack', 'breach', 'clear', 'hold', 'move', 'detain', 'regroup'] : [...SOLO_ORDERS];
@@ -225,13 +167,29 @@ export function createIncidentView(
     const comms = el('div', `width:100%;max-width:420px;display:flex;flex-direction:column;gap:2px;margin-top:2px`);
     if (inc.squad) {
       for (const s of inc.squad.snapshot(inc.simSeconds)) {
-        comms.append(
-          el(
-            'div',
-            `font:9.5px ${FONT_MONO};color:${s.wound === 'healthy' ? C.dim : C.red}`,
-            `${s.name.toUpperCase()} · ${s.queue.length ? s.queue.join(' → ') : 'idle'}${s.ack ? ` — “${s.ack}”` : ''}`,
-          ),
+        const row = el('div', `display:flex;align-items:center;gap:6px`);
+        row.append(
+          el('div', `font:9.5px ${FONT_MONO};color:${s.wound === 'healthy' ? C.dim : C.red};flex:none;width:74px`, s.name.toUpperCase()),
         );
+        // each queued order is its own chip: the queue is the thing the player
+        // authored, so it has to be editable, not just legible
+        s.queue.forEach((q, i) => {
+          const chip = el(
+            'span',
+            `padding:1px 4px;border:1px solid rgba(120,140,160,.3);border-radius:2px;font:9px ${FONT_MONO};color:${C.ink};cursor:pointer`,
+            String(q),
+          );
+          chip.title = 'move to the front · shift-click to drop';
+          chip.addEventListener('click', (ev) => {
+            if (ev.shiftKey) inc.squad?.cancel(s.id, i);
+            else inc.squad?.reorder(s.id, i, 0);
+            render();
+          });
+          row.append(chip);
+        });
+        if (s.queue.length === 0) row.append(el('span', `font:9px ${FONT_MONO};color:${C.faint}`, 'idle'));
+        if (s.ack) row.append(el('span', `font:9px ${FONT_MONO};color:${C.gold}`, `“${s.ack}”`));
+        comms.append(row);
       }
     } else {
       comms.append(

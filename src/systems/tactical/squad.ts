@@ -237,6 +237,30 @@ export class Squad {
     }
   }
 
+  /**
+   * Reorder a unit's queue. Drag-reorder in the UI, but the *rule* belongs here:
+   * a plan you can rewrite is a plan, and the queue is the only thing the player
+   * actually authored in the scene.
+   */
+  reorder(id: string, from: number, to: number): boolean {
+    const unit = this.state.get(id);
+    if (!unit) return false;
+    if (from < 0 || to < 0 || from >= unit.queue.length || to >= unit.queue.length) return false;
+    if (from === to) return true;
+    const [moved] = unit.queue.splice(from, 1);
+    if (!moved) return false;
+    unit.queue.splice(to, 0, moved);
+    return true;
+  }
+
+  /** Drop one queued order without touching the rest. */
+  cancel(id: string, index: number): boolean {
+    const unit = this.state.get(id);
+    if (!unit || index < 0 || index >= unit.queue.length) return false;
+    unit.queue.splice(index, 1);
+    return true;
+  }
+
   /** Rough sim-seconds each order occupies the unit. */
   static durationOf(order: Order): number {
     return orderDuration(order);

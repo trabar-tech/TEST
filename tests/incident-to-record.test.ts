@@ -74,6 +74,8 @@ function raid(via: 'quiet' | 'loud'): Incident {
     inc.enterRoom('north', 'knock_talk', 1);
     inc.applyForceTo('h-02', 2, { tool: 'hands' });
     inc.detain('h-02');
+    // clearing is a deliberate act: entering a room is not claiming it clear
+    inc.clearRoom('north');
   } else {
     inc.enterRoom('bsr', 'shotgun', 2);
     inc.applyForceTo('h-01', 4, { tool: 'firearm' });
