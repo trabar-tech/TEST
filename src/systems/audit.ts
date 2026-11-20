@@ -14,9 +14,19 @@
  */
 
 import type { Rng } from '@core/rng';
+import type { Directive } from '@core/content';
 import type { ReportLine, WitnessRef } from '@core/record';
+import { directiveFindings } from './directive-conflicts';
 
-export type FindingKind = 'camera' | 'witness' | 'contradiction' | 'pattern' | 'silence' | 'scene';
+export type FindingKind =
+  | 'camera'
+  | 'witness'
+  | 'contradiction'
+  | 'pattern'
+  | 'silence'
+  | 'scene'
+  /** a standing order broken by obeying another standing order (P3-T11) */
+  | 'directive';
 
 export interface Finding {
   kind: FindingKind;
@@ -48,6 +58,12 @@ export interface AuditOptions {
   history?: { meanSlack: number; lines: number };
   /** lines the audit had to file itself because the player filed nothing */
   autoFiled?: readonly ReportLine[];
+  /**
+   * Standing orders in force, and which the player obeyed. When two of them
+   * cannot both be satisfied, the sheet says so — a contradiction the player only
+   * meets on the audit sheet is a trap (P3-T11).
+   */
+  directives?: { live: readonly Directive[]; satisfied: readonly string[] };
 }
 
 /**
@@ -199,6 +215,18 @@ export function runAudit(opts: AuditOptions): AuditResult {
     }
   }
 
+  // 3b. Standing-order contradictions. Two orders that cannot both be obeyed are
+  //     only a rule if the sheet charges them; otherwise the graph is a comment.
+  if (opts.directives) {
+    for (const f of directiveFindings({
+      lines: opts.lines,
+      state: { live: opts.directives.live, satisfied: opts.directives.satisfied },
+    })) {
+      findings.push(f);
+      if (!destabilised.includes(f.line_id)) destabilised.push(f.line_id);
+    }
+  }
+
   // 4. Peer pattern test: a supervisor compares this shift against the record.
   const pattern = peerPattern(opts.lines, opts.history);
   if (pattern) findings.push(pattern);
@@ -250,7 +278,7 @@ function peerPattern(
 }
 
 function buildSheet(findings: Finding[], risk: number): string[] {
-  const order: FindingKind[] = ['camera', 'witness', 'contradiction', 'silence', 'pattern'];
+  const order: FindingKind[] = ['directive', 'camera', 'witness', 'contradiction', 'silence', 'pattern'];
   const byKind = new Map<FindingKind, Finding[]>();
   for (const f of findings) {
     const list = byKind.get(f.kind) ?? [];
@@ -283,6 +311,8 @@ function label(kind: FindingKind): string {
       return 'SILENCE';
     case 'scene':
       return 'THE SCENE';
+    case 'directive':
+      return 'STANDING ORDER';
   }
 }
 

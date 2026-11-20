@@ -22,6 +22,7 @@ import {
   type LoadedContent,
 } from '@core/content';
 import { mapJsonToDef, loadBundle, type MapJson } from './lib/load-content';
+import { DIRECTIVE_TAGS } from '../src/systems/directive-conflicts';
 
 const ROOT = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 
@@ -151,7 +152,16 @@ for (const file of contentFiles) {
     for (const dup of report.duplicateIds) fail(`${rel} — duplicate id ${dup}`);
     for (const ref of report.unresolvedReferences) fail(`${rel} — unresolved reference ${ref}`);
     for (const cyc of report.contradictionCycles) {
-      warn(`${rel} — directive contradiction cycle ${cyc} (allowed, but the audit must resolve it)`);
+      // no longer a warning: `directive-conflicts.ts` charges for it on the audit
+      // sheet, and the desk warns before signing. A cycle is intended content.
+      console.log(`  · ${rel} — contradiction pair ${cyc} (enforced by the audit)`);
+    }
+    // an order with no acts can never be scored, which makes it prose pretending to
+    // be a rule — worth saying out loud during authoring
+    for (const d of bundle.bundle.directives) {
+      if (d.tags.length === 0 && !DIRECTIVE_TAGS[d.id]) {
+        warn(`${rel} — directive ${d.id} has no tags and is not in DIRECTIVE_TAGS, so it can never be satisfied or broken`);
+      }
     }
     if (report.connectiveTissueRatio < 0.4) {
       warn(

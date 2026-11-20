@@ -16,6 +16,8 @@ import { EventBus } from '@core/bus';
 import { World } from '@core/world';
 import { findPath, type TileMap, type Vec2 } from '@core/nav';
 import { streamFor, type Rng } from '@core/rng';
+import type { Directive } from '@core/content';
+import { satisfiedDirectives } from './directive-conflicts';
 import {
   RecordStore,
   claimOf,
@@ -143,6 +145,8 @@ export interface ShiftOptions {
   /** quota for the shift; Phase 1 keeps it honest-but-tight */
   quotaInspections?: number;
   bus?: EventBus;
+  /** standing orders in force tonight, for the contradiction test (P3-T11) */
+  directives?: readonly Directive[];
 }
 
 export interface InspectionState {
@@ -182,6 +186,8 @@ export class Simulation {
   briefing: string[] = [];
   quotaInspections: number;
   inspectionsDone = 0;
+  /** Standing orders for the shift; empty means the contradiction test does not fire */
+  readonly liveDirectives: readonly Directive[];
 
   private readonly rng: Rng;
   private pawnId = 0;
@@ -194,6 +200,7 @@ export class Simulation {
     this.mapJson = opts.mapJson;
     this.bus = opts.bus ?? new EventBus({ recording: true });
     this.quotaInspections = opts.quotaInspections ?? 3;
+    this.liveDirectives = opts.directives ?? [];
 
     const state = emptyState(opts.seed);
     state.shift = opts.shift ?? 1;
@@ -587,6 +594,19 @@ export class Simulation {
   }
 
   /** Live exposure for the gutter, given the player's current draft. */
+  /** What the desk may show before signing, and nothing else. */
+  directives(): readonly Directive[] {
+    return this.liveDirectives;
+  }
+
+  /**
+   * Tonight's orders. The Directorate issues them at the start of a shift, so they
+   * are set from outside rather than re-read from content on every change.
+   */
+  setDirectives(directives: readonly Directive[]): void {
+    (this as { liveDirectives: readonly Directive[] }).liveDirectives = directives;
+  }
+
   previewExposure(event: DocketEvent, draft: Claim): ExposureReport {
     return computeExposure({
       candidate: draft,
@@ -665,6 +685,9 @@ export class Simulation {
       lines,
       rngSeed: this.state.seed ^ (this.state.shift * 7919),
       autoFiled: auto,
+      directives: this.liveDirectives.length > 0
+        ? { live: this.liveDirectives, satisfied: satisfiedDirectives(this.liveDirectives, lines) }
+        : undefined,
     });
     for (const id of result.destabilised) this.record.destabilise([id]);
 

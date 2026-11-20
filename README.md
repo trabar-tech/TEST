@@ -46,7 +46,7 @@ npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
                    # E opens the desk early, C opens the case file, F enters the flat,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 504 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 534 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
@@ -55,6 +55,10 @@ What exists today is one complete shift, the tactical layer that feeds it, and (
 Phase 3 simulation behind it: a 60-household district, three directors, and the storylet deck
 they draw from. The district's temperature is never shown as a number — the loudspeaker and the
 ambient lines change with it, so the street tells you what kind of day it is.
+
+Each shift the Directorate issues three standing orders, and some of them contradict each
+other: obeying both is charged on the audit sheet, and the desk's exposure gutter warns you
+before you sign.
 
 **Key bindings:**
 on the street — click to walk, click a citizen to inspect, `E` the desk, `C` the case file,

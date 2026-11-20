@@ -169,6 +169,7 @@ describe('directive contradiction graph', () => {
     text: id,
     quota: null,
     contradicts,
+    tags: [],
     audit_weight: 1,
   });
 

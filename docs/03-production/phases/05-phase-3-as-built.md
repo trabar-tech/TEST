@@ -25,6 +25,7 @@
 | P3-T08 | Cell HTN-lite plans + grudges | `src/systems/plans.ts` | same |
 | P3-T03/T10/T12 | Composition + the Inspector | `src/systems/showrunner.ts`, `src/ui/inspector.ts` | `tests/showrunner.test.ts` (21), `tests/ui-inspector.test.ts` (13) |
 | P3-T03 tail | The street speaks its grade | `src/systems/mood.ts`, `Barks.forGrade`, `barks.json#by_grade` | `tests/mood.test.ts` (13) |
+| P3-T11 | Contradicting standing orders, enforced | `src/systems/directive-conflicts.ts`, audit `directive` findings, desk warning, `main.ts` order rotation | `tests/directive-conflicts.test.ts` (21), `tests/orders.test.ts` (7), 2 in `tests/ui-desk.test.ts` |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
 
 **The spine went first, on purpose.** The phase doc says every director is a deck, so the
@@ -69,6 +70,36 @@ it. `claim` codes are also now authoring-checked against the record layer's lega
 divided nothing by nothing and returned the neutral band. Zero is the honest answer: an
 evacuated district is not half-hostile.
 
+## 2b. Standing orders are now a rule, not a comment
+
+The contradiction graph was detected and warned about since Phase 0 and **enforced by
+nothing**, which made it a comment. `src/systems/directive-conflicts.ts` closes that, and the
+mechanism is deliberately narrow:
+
+- A directive carries `tags`: the *acts* it requires. `DIRECTIVE_TAGS` fills in the existing
+  twenty-two orders so they could be scored without an authoring pass; `DirectiveSchema` now
+  has a `tags` field for authors who want to say it themselves.
+- Two live orders conflict when they name each other in `contradicts` (the interesting kind,
+  where both halves are individually correct) or when they demand the same act.
+- A filed line performs acts, derived from its tags and its classification. `expandActs()`
+  maps *noticing* tags to *act* vocabulary — and that mapping is the bug that had to be found
+  by hand: the desk tags an inspection `insufficient_papers`, while the order talks about
+  `inspection`, so the first version of the warning never fired for any real filing.
+
+Then: obeying two conflicting orders is charged on the sheet (`kind: 'directive'`, weight 0.35
+for both halves, 0.2 for one), it destabilises the line, and it can tip a clean shift into
+Review. Crucially the desk shows **`conflictWarnings()` before signing** — a contradiction the
+player only meets on the audit sheet is a trap, and traps are what this design forbids.
+
+It is live in the browser: `main.ts` issues three orders a shift and always draws the partner
+of any order it picked, so shift 1 opens on a real dilemma — `dir-0180` requires curfew-pass
+checks, `dir-0197` suspends them and demands visible patrol instead. `tests/orders.test.ts`
+pins that rotation and asserts contradictions do not stack on most nights.
+
+The G2 question this is aimed at is #2 (*fairness*): the player should be able to say "I
+broke the curfew order because the Directorate contradicted itself, and here is the line that
+says so."
+
 ## 3. What is deliberately not built
 
 - **Campaign temperature in the bark selector (P3-T03 tail, partially closed).** The *street*
@@ -86,9 +117,10 @@ evacuated district is not half-hostile.
   interchangeable cards.
 - **The Congregation and the Syndicate.** Only the Cell has a plan engine. `PlanDef` is
   faction-keyed, so the other two are data, not code — but they are not written.
-- **Directive contradiction resolution in the audit.** The graph is detected
-  (`findDirectiveCycles`, and the validator warns), but nothing yet makes the audit *charge*
-  a Warden for obeying two contradictory standing orders. G2 question 2 will notice this.
+- **Directive contradiction resolution: now enforced** (was the head of this list). See §2b.
+- **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
+  (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
+  system and it needs the shift's tally, which currently lives in `main.ts`.
 - **The showrunner is not wired into `main.ts`.** It runs headless and is fully tested, but
   the browser's shift loop is still Phase 1's. Wiring it changes the shape of a shift (the
   deck chooses the morning's beats), which is a UI decision that should follow a G2 session
@@ -116,13 +148,14 @@ likely to break and what to look at:
 ## 5. Verified
 
 ```
-npm run verify                504 passed / 38 files
+npm run verify                534 passed / 40 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
 node scripts/check-boundaries ✓ 47 source files, 5 rules
-npx tsx scripts/validate-content.ts  ✓ 1 bundle, 1 warning
-  ! directive contradiction cycle dir-0203 → dir-0204 → dir-0203 (intended; the audit must resolve it)
+npx tsx scripts/validate-content.ts  ✓ 1 bundle, 0 warnings
 ```
 
-The single warning is authored on purpose — it is the fixture for the contradiction-graph
-work in §3.
+The validator no longer warns about contradiction cycles — they are enforced now, so they are
+content rather than debt. It does now warn when an order has no tags at all, because such an
+order can never be satisfied or broken; that check found `dir-0180` (the curfew-pass order)
+missing from the act table.

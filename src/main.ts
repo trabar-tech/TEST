@@ -133,6 +133,29 @@ async function start(): Promise<void> {
   }
 
   const barks = new Barks(barksJson as unknown as BarkSet, seed, 1);
+
+  /**
+   * Tonight's standing orders (P3-T11).
+   *
+   * The sample bundle ships twenty-two of them, and the desk charges the Warden for
+   * obeying two that cannot both be satisfied. Until now that machinery ran only in
+   * tests. Selecting by shift keeps it deterministic and keeps the contradiction
+   * rare enough to be a turn of the screw rather than the weather.
+   */
+  const directives = loaded.bundle.directives;
+  const shiftOrders = (shift: number): typeof directives => {
+    if (directives.length === 0) return [];
+    const start = ((shift - 1) * 3) % directives.length;
+    const picked = [0, 1, 2].map((i) => directives[(start + i) % directives.length]!);
+    // the declared pair is the point of the system, so the shift that draws the
+    // first half always draws the second: a contradiction the player can plan for
+    const partner = picked
+      .flatMap((d) => d.contradicts)
+      .map((id) => directives.find((d) => d.id === id))
+      .filter((d): d is (typeof directives)[number] => d !== undefined && !picked.includes(d));
+    return [...picked, ...partner];
+  };
+  sim.setDirectives(shiftOrders(1));
   const hud = createHud(sim, host);
   const overlay = createDebugOverlay(sim, host);
   const caseFile = createCaseFile(sim, host);
@@ -561,6 +584,7 @@ async function start(): Promise<void> {
     sim.docket.length = 0;
     sim.inspectionsDone = 0;
     sim.state.shift += 1;
+    sim.setDirectives(shiftOrders(sim.state.shift));
     const sector = advanceSector(sim.state);
     forceIndex = { sector: sector.memory.sector, value: sector.memory.force };
     sim.phase = 'brief';

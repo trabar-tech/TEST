@@ -233,3 +233,40 @@ describe('the inspection panel', () => {
     expect(closed).toBeGreaterThan(0);
   });
 });
+
+describe('the desk warns about a contradicting standing order before signing', () => {
+  // The fairness rule is that a consequence names its cause *before* it lands. A
+  // contradiction discovered only on the audit sheet is a trap (P3-T11).
+  const live = [
+    { id: 'x-a', type: 'standing', text: 'Inspect every household on the row.', quota: null,
+      contradicts: ['x-b'], tags: ['inspection'], audit_weight: 1 },
+    { id: 'x-b', type: 'standing', text: 'Do not enter a household without a warrant.', quota: null,
+      contradicts: ['x-a'], tags: ['inspection'], audit_weight: 1 },
+  ] as never;
+
+  it('shows the conflict in the exposure gutter, in the gutter\'s register', () => {
+    const sim = new Simulation({
+      seed: 11,
+      shift: 1,
+      map: new TileMap(mapJsonToDef(mapJson)),
+      mapJson,
+      citizens: citizensJson,
+      directives: live,
+    });
+    sim.beginBeat();
+    sim.openInspection('c-0221');
+    sim.resolveInspection('P');
+    sim.openDesk();
+    const desk = createDesk(sim, host, { onSubmit: () => {} });
+    expect(host.textContent).toMatch(/two orders conflict/);
+    expect(host.textContent).toMatch(/satisfies one and breaks the other/);
+    desk.destroy();
+  });
+
+  it('says nothing when the shift has no orders in force', () => {
+    const sim = simWithDocket();
+    const desk = createDesk(sim, host, { onSubmit: () => {} });
+    expect(host.textContent).not.toMatch(/two orders conflict/);
+    desk.destroy();
+  });
+});

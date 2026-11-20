@@ -125,7 +125,7 @@ Goal: 6 shifts that feel like a place with a memory. Gate G2.
 | `[~]` P3-T08 | **Oversight Attention** gauge + Eye escalation ladder | honest filing lowers attention within 2 shifts; the player can name why | *gauge + ladder done; "honest filing lowers attention" is decay-only, not yet tied to filing honesty*
 | `[x]` P3-T09 | **AI score inspector** (dev overlay: candidate actions, axes, scores) | a designer can tune a curve in JSON and see the delta without a rebuild | *player-facing Inspector, not a dev overlay: the same arithmetic the director used, plus ruled-out cards*
 | `[~]` P3-T10 | 60 micro-events authored as storylets + weighted | a shift's Beat has ≥3 distinct encounters; ≥40% reference prior state | *12 storylets, not 60 — a representative slice (cut line permits 30)*
-| `[~]` P3-T11 | Directive system with contradiction graph (80 directives) | a daily directive can contradict a standing one and both are enforceable | *22 directives, not 80; contradiction graph detected + warned, not yet charged by the audit*
+| `[~]` P3-T11 | Directive system with contradiction graph (80 directives) | a daily directive can contradict a standing one and both are enforceable | *22 directives, not 80. Contradictions are **now enforced**: charged on the audit sheet, warned in the desk before signing, and issued live in the browser. Quotas still unmeasured*
 | `[x]` P3-T12 | **Epilogue storylets** (delayed callbacks, 3–6 shifts) | a silenced witness resurfaces unprompted; a protected family is referenced later | *epilogue chain: me-03 → epi-01, me-05 → epi-02, scheduled 2–6 shifts ahead*
 
 **Status (as built):** the spine is real and the district is real; the *content volume* is the

@@ -155,6 +155,12 @@ export const DirectiveSchema = z.object({
     .nullable()
     .default(null),
   contradicts: z.array(z.string()).default([]),
+  /**
+   * The *acts* this order requires. Empty means the order is prose only and cannot
+   * be scored — which is why the contradiction test falls back to a table rather
+   * than pretending an untagged order was satisfied.
+   */
+  tags: z.array(z.string()).default([]),
   audit_weight: z.number().default(1),
   reward: z.record(z.number()).optional(),
   penalty: z.record(z.number()).optional(),

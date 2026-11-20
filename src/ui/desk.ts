@@ -13,6 +13,7 @@
 import type { Simulation, DocketEvent } from '@systems/shift';
 import type { Claim, Classification, ForceRung } from '@core/record';
 import { riskBand } from '@core/record';
+import { actsOf, conflictWarnings } from '@systems/directive-conflicts';
 import { bandChip, button, clear, el, label, note, panel } from './dom';
 
 export const TAG_VOCABULARY = [
@@ -342,6 +343,18 @@ export function createDesk(
     if (band === 'safe' && draft.claim.classification !== event.draft.classification) {
       why.append(reason('·', 'nobody is watching', 'You can write this and it will stand. That is not the same as true.'));
     }
+
+    // Standing-order contradictions are shown *before* signing. Discovering them
+    // on the audit sheet would be a trap, and traps are what this design forbids.
+    // the same expansion the audit uses, so the warning and the charge cannot
+    // disagree about what the player just did
+    const performed = actsOf({ claim: draft.claim, tags: [...draft.tags] });
+    for (const warning of conflictWarnings(sim.directives(), performed)) {
+      why.append(
+        reason('⌖', 'two orders conflict', `${warning} Obeying one is a failure of the other, and the sheet will say which.`),
+      );
+    }
+
     col.append(why);
 
     col.append(
