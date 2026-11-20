@@ -140,6 +140,12 @@ P0 ──▶ P1 (Record) ──G0──▶ P2 (tactical) ──G1──▶ P3 (s
 | P4 overruns | campaign tuning won't converge | Ship 10 shifts, not 15 (cut #5). Keep Continuing Service. |
 | G4 fails | attention economy isn't tense | Cut the expansion. Spend the sessions on Continuing Service + New Game+. |
 
+## Playtests
+
+- [`06-playtest-01.md`](06-playtest-01.md) — first human session: three real bugs (modal clicks
+  moving the Warden, repeated cards, no inspection range), and the expectation mismatch it
+  surfaced. Not a gate.
+
 ## Phase 4 entry
 
 - [`05-phase-4-entry.md`](05-phase-4-entry.md) — the headless campaign runner, and the three

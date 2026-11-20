@@ -62,8 +62,13 @@ export function createDesk(
 ): DeskHandle {
   const root = el(
     'div',
-    'position:absolute;inset:0;display:grid;grid-template-columns:248px minmax(0,1fr) 252px;gap:0;background:#0d1013',
+    'position:absolute;inset:0;display:grid;grid-template-columns:248px minmax(0,1fr) 252px;gap:0;background:#0d1013;z-index:20',
   );
+  // a click on the desk is not a click on the street (same bug as the scene overlay)
+  // bubble phase, not capture: a capture-phase stop would swallow the desk's own buttons
+  for (const type of ['pointerdown', 'pointerup', 'click'] as const) {
+    root.addEventListener(type, (e) => e.stopPropagation());
+  }
   host.appendChild(root);
 
   const state = {

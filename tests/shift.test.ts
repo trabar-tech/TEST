@@ -97,19 +97,36 @@ describe('the street', () => {
   });
 });
 
+/**
+ * Walk to a citizen and open the inspection, the way a player does.
+ *
+ * Reach is enforced in `openInspection` (first-playtest fix), so a test that teleports the
+ * Warden is no longer testing the game. This is the honest path: set a route, run the beat,
+ * and arrive.
+ */
+function talkTo(sim: Simulation, id: string): void {
+  for (let i = 0; i < 60 * 60 && sim.reachCheck(id) !== null; i++) {
+    if (!sim.approaching) sim.approachAndInspect(id);
+    sim.clock.advanceRealMs(1000 / 60);
+    if (sim.shiftOver) break;
+  }
+  sim.openInspection(id);
+}
+
 describe('inspection', () => {
   it('opens only during the beat, and slows time while it is open', () => {
     const sim = makeSim();
     expect(sim.openInspection('c-0221')).toBeNull();
     sim.beginBeat();
-    expect(sim.openInspection('c-0221')).not.toBeNull();
+    talkTo(sim, 'c-0221');
+    expect(sim.inspection).not.toBeNull();
     expect(sim.clock.pendingMode).toBe('focus');
   });
 
   it('offers exactly three questions, and refuses a fourth', () => {
     const sim = makeSim();
     sim.beginBeat();
-    sim.openInspection('c-0307');
+    talkTo(sim, 'c-0307');
     for (const q of QUESTIONS.slice(0, 3)) sim.askQuestion(q.id);
     expect(sim.inspection!.transcript).toHaveLength(3);
     sim.askQuestion(QUESTIONS[3]!.id);
@@ -122,7 +139,7 @@ describe('inspection', () => {
   it('shows a tell on every answer', () => {
     const sim = makeSim();
     sim.beginBeat();
-    sim.openInspection('c-0414');
+    talkTo(sim, 'c-0414');
     sim.askQuestion('shift_boss');
     expect(sim.inspection!.transcript[0]!.tell).not.toBeNull();
   });
@@ -131,7 +148,7 @@ describe('inspection', () => {
     const sim = makeSim();
     sim.beginBeat();
     const warped = citizensJson.citizens.find((c) => c.irregularity?.field === 'name')!;
-    sim.openInspection(warped.id);
+    talkTo(sim, warped.id);
     expect(sim.inspection!.checks.some((c) => c.id === 'seal_warp')).toBe(false);
     sim.fullCheck();
     const seal = sim.inspection!.checks.find((c) => c.id === 'seal_warp')!;
@@ -141,7 +158,7 @@ describe('inspection', () => {
   it('an inspection writes no line by itself: the desk signs it', () => {
     const sim = makeSim();
     sim.beginBeat();
-    sim.openInspection('c-0307'); // clean papers
+    talkTo(sim, 'c-0307'); // clean papers
     const event = sim.resolveInspection('P');
     expect(event).not.toBeNull();
     expect(sim.record.size).toBe(0);
@@ -151,7 +168,7 @@ describe('inspection', () => {
   it('an honest filing has zero slack', () => {
     const sim = makeSim();
     sim.beginBeat();
-    sim.openInspection('c-0307'); // clean papers
+    talkTo(sim, 'c-0307'); // clean papers
     sim.resolveInspection('P');
     sim.openDesk();
     const e = sim.docket[0]!;
@@ -163,7 +180,7 @@ describe('inspection', () => {
   it('detaining someone who did nothing is a lie the record keeps', () => {
     const sim = makeSim();
     sim.beginBeat();
-    sim.openInspection('c-0307');
+    talkTo(sim, 'c-0307');
     sim.resolveInspection('D');
     sim.openDesk();
     const e = sim.docket[0]!;
@@ -185,7 +202,7 @@ describe('inspection', () => {
   it('a camera over the inspection shows up in the filing preview', () => {
     const sim = makeSim();
     sim.beginBeat();
-    sim.openInspection('c-0414'); // ration queue: annex-1 covers it
+    talkTo(sim, 'c-0414'); // ration queue: annex-1 covers it
     expect(sim.docket).toHaveLength(0); // nothing is signed until the desk
     sim.resolveInspection('P'); // the player missed the expired pass
     const ev = sim.docket[0]!;
@@ -206,9 +223,9 @@ describe('the desk', () => {
   function withDocket(): Simulation {
     const sim = makeSim();
     sim.beginBeat();
-    sim.openInspection('c-0221'); // defective chip
+    talkTo(sim, 'c-0221'); // defective chip
     sim.resolveInspection('P'); // the player misses it
-    sim.openInspection('c-0307'); // clean
+    talkTo(sim, 'c-0307'); // clean
     sim.resolveInspection('P');
     sim.openDesk();
     return sim;
@@ -281,7 +298,7 @@ describe('the day turns', () => {
     const sim = makeSim();
     sim.beginBeat();
     // the ration queue is under annex-1, so anything written there is observed
-    sim.openInspection('c-0414');
+    talkTo(sim, 'c-0414');
     sim.resolveInspection('C');
     sim.openDesk();
     const ev = sim.docket[0]!;
@@ -300,7 +317,7 @@ describe('the day turns', () => {
   it('belief is readable after a shift and counts claims only', () => {
     const sim = makeSim();
     sim.beginBeat();
-    sim.openInspection('c-0221'); // defective chip, seen by nobody
+    talkTo(sim, 'c-0221'); // defective chip, seen by nobody
     sim.resolveInspection('C');
     sim.openDesk();
     const e = sim.docket[0]!;

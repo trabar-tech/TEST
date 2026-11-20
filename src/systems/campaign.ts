@@ -184,6 +184,13 @@ export function runCampaign(opts: CampaignOptions): CampaignResult {
     const count = Math.min(opts.policy.inspectionsPerShift(), roster.length);
     for (let i = 0; i < count; i++) {
       const id = roster[(n * 3 + i) % roster.length]!;
+      // walk to them, like a player: reach is enforced since the first playtest, so a
+      // runner that teleported would silently never name anybody
+      for (let step = 0; step < 60 * 45 && sim.reachCheck(id) !== null; step++) {
+        if (!sim.approaching) sim.approachAndInspect(id);
+        sim.clock.advanceRealMs(1000 / 60);
+        if (sim.shiftOver) break;
+      }
       // asked and closed in one pass: the runner writes no transcript, because the
       // conversation's content is a playtest question, not a tuning one
       if (!sim.openInspection(id)) continue;

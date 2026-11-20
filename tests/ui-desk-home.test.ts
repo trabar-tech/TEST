@@ -33,17 +33,27 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
+/** Walk to a citizen and open the inspection, the way a player does (reach is enforced). */
+function talkTo(sim: Simulation, id: string): void {
+  for (let i = 0; i < 60 * 60 && sim.reachCheck(id) !== null; i++) {
+    if (!sim.approaching) sim.approachAndInspect(id);
+    sim.clock.advanceRealMs(1000 / 60);
+    if (sim.shiftOver) break;
+  }
+  sim.openInspection(id);
+}
+
 function deskWithSector() {
   const sim = new Simulation({
     seed: 2026,
     shift: 1,
     map: new TileMap(mapJsonToDef(mapJson)),
     mapJson,
-    citizens: citizensJson,
+    citizens: JSON.parse(JSON.stringify(citizensJson)) as typeof citizensJson,
     sector: generateSector({ seed: 2026 }),
   });
   sim.beginBeat();
-  sim.openInspection('c-0221');
+  talkTo(sim, 'c-0221');
   sim.resolveInspection('P');
   sim.openDesk();
   const desk = createDesk(sim, host, { onSubmit: () => {} });
@@ -72,10 +82,10 @@ describe('the desk shows where the person lives', () => {
       shift: 1,
       map: new TileMap(mapJsonToDef(mapJson)),
       mapJson,
-      citizens: citizensJson,
+      citizens: JSON.parse(JSON.stringify(citizensJson)) as typeof citizensJson,
     });
     sim.beginBeat();
-    sim.openInspection('c-0221');
+    talkTo(sim, 'c-0221');
     sim.resolveInspection('P');
     sim.openDesk();
     const desk = createDesk(sim, host, { onSubmit: () => {} });
@@ -91,7 +101,7 @@ describe('the desk shows where the person lives', () => {
         shift: 1,
         map: new TileMap(mapJsonToDef(mapJson)),
         mapJson,
-        citizens: citizensJson,
+        citizens: JSON.parse(JSON.stringify(citizensJson)) as typeof citizensJson,
         sector,
       });
       return probe.homeOf('c-0221')!;
@@ -109,11 +119,11 @@ describe('the desk shows where the person lives', () => {
       shift: 1,
       map: new TileMap(mapJsonToDef(mapJson)),
       mapJson,
-      citizens: citizensJson,
+      citizens: JSON.parse(JSON.stringify(citizensJson)) as typeof citizensJson,
       sector: altered,
     });
     sim.beginBeat();
-    sim.openInspection('c-0221');
+    talkTo(sim, 'c-0221');
     sim.resolveInspection('P');
     sim.openDesk();
     const desk = createDesk(sim, host, { onSubmit: () => {} });

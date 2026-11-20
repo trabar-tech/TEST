@@ -228,6 +228,15 @@ export class Simulation {
 
   private readonly rng: Rng;
   private pawnId = 0;
+  /**
+   * A citizen the Warden has been sent to talk to, if they are still walking.
+   *
+   * Playtest: "I can interrogate anyone at any time no matter the distance." The fix is not a
+   * refusal — being told "too far" while a person is visibly across the street feels broken.
+   * Clicking somebody out of reach now *walks the Warden to them* and opens the inspection on
+   * arrival, which is what a player expects a click on a person to do.
+   */
+  private pendingApproach: string | null = null;
   private pos: Vec2 = { x: 0, y: 0 };
   private facing = 0;
   private lastSteps = 0;
@@ -394,6 +403,8 @@ export class Simulation {
       this.bus.emit('nav:blocked', { target, reason: 'no_route' });
       return { ok: false, reason: 'No route.' };
     }
+    // a deliberate move by the player cancels a pending approach: the Warden is not a robot
+    this.pendingApproach = null;
     const pawn = this.world.get(this.pawnId)!;
     const c = pawn.c as unknown as { route: Vec2[]; routeIndex: number };
     c.route = path.waypoints;
@@ -404,10 +415,35 @@ export class Simulation {
 
   /* ----------------------------------------------------------- inspection */
 
+  /**
+   * How close the Warden must be to a citizen to inspect them, in world units.
+   *
+   * Playtest, first session: "I can interrogate anyone at any time no matter how much is the
+   * distance between us." Correct, and it hollowed out the walking — which is the only verb
+   * the beat has. The reach is deliberate: close enough that the citizen is clearly the person
+   * you approached, far enough that you do not have to fight the collision radius.
+   */
+  static readonly REACH = 78;
+
+  /** Why an inspection would fail, or null if it may proceed. For prompts and for tests. */
+  reachCheck(citizenId: string): string | null {
+    if (this.phase !== 'beat') return 'You are not on the beat.';
+    const def = this.citizens.def(citizenId);
+    if (!def) return 'Nobody there.';
+    const pos = this.citizens.position(citizenId);
+    if (!pos) return null;
+    const d = Math.hypot(pos.x - this.pos.x, pos.y - this.pos.y);
+    if (d <= Simulation.REACH) return null;
+    return 'Too far. Walk up to them.';
+  }
+
   openInspection(citizenId: string): InspectionState | null {
     if (this.phase !== 'beat') return null;
     const def = this.citizens.def(citizenId);
     if (!def) return null;
+    // range is checked here, not in the UI: a caller that forgets the prompt must not be
+    // able to interrogate somebody across the map (playtest finding)
+    if (this.reachCheck(citizenId)) return null;
     const checks = runChecksFor(def, this.state.shift);
     this.inspection = {
       citizenId,
@@ -921,6 +957,28 @@ export class Simulation {
 
   /* ----------------------------------------------------------------- step */
 
+  /** The citizen the Warden is currently walking towards, if any. */
+  get approaching(): string | null {
+    return this.pendingApproach;
+  }
+
+  /**
+   * Walk to a citizen and inspect them on arrival.
+   *
+   * Returns the inspection when already in reach, `'approaching'` when a route was set, or a
+   * reason string when there is no route. The caller does not need to poll: `step()` opens the
+   * inspection when the pawn arrives.
+   */
+  approachAndInspect(citizenId: string): InspectionState | 'approaching' | null {
+    if (this.reachCheck(citizenId) === null) return this.openInspection(citizenId);
+    const pos = this.citizens.position(citizenId);
+    if (!pos) return null;
+    const result = this.moveTo(pos);
+    if (!result.ok) return null;
+    this.pendingApproach = citizenId;
+    return 'approaching';
+  }
+
   private step(dt: number): void {
     const pawn = this.world.get(this.pawnId);
     if (pawn) {
@@ -948,6 +1006,19 @@ export class Simulation {
       }
       this.pos = { x: Math.round(c.pos.x * 1000) / 1000, y: Math.round(c.pos.y * 1000) / 1000 };
       this.facing = c.facing;
+
+      // arrival: the person the Warden walked to gets spoken to, once
+      if (this.pendingApproach && this.phase === 'beat') {
+        const target = this.pendingApproach;
+        if (this.reachCheck(target) === null) {
+          this.pendingApproach = null;
+          this.openInspection(target);
+        } else if (c.routeIndex >= c.route.length) {
+          // the walk finished without getting close enough (they moved, or the route stopped
+          // short); drop the intent rather than marching forever
+          this.pendingApproach = null;
+        }
+      }
     }
 
     // citizens only move during the beat; at the desk the street is frozen

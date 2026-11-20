@@ -194,6 +194,10 @@ async function start(): Promise<void> {
 
   let incident: Incident | null = null;
   let incidentView: ReturnType<typeof createIncidentView> | null = null;
+  // declared here, beside `incident`, because the canvas pointerdown listener closes over
+  // them and a `const`-like TDZ read before initialisation crashed the whole-shift test
+  let sceneView: ReturnType<typeof createStoryScene> | null = null;
+  let scenes: SceneLogState = createSceneLog(1);
   let crowd: CrowdDef | null = null;
   // the sector's memory lives on the save, not in this closure: a reload that
   // forgets the ratchet would quietly delete the tactical layer's whole claim
@@ -274,14 +278,15 @@ async function start(): Promise<void> {
    * The shift's scenes (P3-T04). The deck has been tested since it was written and
    * pulled no strings in the running game; this is the string.
    */
-  let scenes: SceneLogState = createSceneLog(1);
-  let sceneView: ReturnType<typeof createStoryScene> | null = null;
-
   /**
    * Draw this shift's cards. Called when the beat opens, so the street is already
    * running when the first one appears.
    */
   function drawScenes(): void {
+    // Creating a fresh log discards `played`, so any call to this while a shift is in
+    // progress re-issues every card already answered. That was the playtest's "the same row
+    // of options keeps coming back". Draw once per shift; a re-draw must be deliberate.
+    if (scenes.shift === sim.state.shift && scenes.drawn.length > 0) return;
     scenes = createSceneLog(sim.state.shift);
     scenes.scheduled = [...sim.effectState.scheduled];
     const deck = buildDeck('beat_morning', loaded.bundle.micro_events, { includeBeats: true });
@@ -303,7 +308,10 @@ async function start(): Promise<void> {
 
   /** Open the next unplayed scene, if there is one and nothing else is on screen. */
   function playNextScene(): void {
+    // the desk is where the shift ends; a card arriving behind it is a card the player
+    // answers blind, which is worse than no card
     if (sceneView || incident || desk || registry || panel || crowd) return;
+    if (sim.phase !== 'beat') return;
     const card = pending(scenes)[0];
     if (!card) return;
     const news = recurrenceFor(sim.state.shift);
@@ -415,6 +423,15 @@ async function start(): Promise<void> {
 
   function openInspectionFor(id: string): void {
     if (sim.phase !== 'beat' || panel) return;
+    // say *why* rather than doing nothing, which is what made the first playtest feel broken
+    const why = sim.reachCheck(id);
+    if (why) {
+      // out of reach is not a refusal: walk to them and talk on arrival (playtest)
+      const sent = sim.approachAndInspect(id);
+      if (sent === 'approaching') hud.setPrompt('walking to them');
+      else overlay.flash(why, 'bad');
+      return;
+    }
     const insp = sim.openInspection(id);
     if (!insp) return;
     panel = createInspectionPanel(sim, host, () => {
@@ -872,7 +889,7 @@ async function start(): Promise<void> {
     const near = sim.citizens.nearest(cursor, 34);
     sim.hoveredCitizenId = near?.id ?? null;
     hud.setHover(near ?? null);
-    if (near) hud.setPrompt(near.temperament === 'afraid' ? 'click to inspect' : 'click to inspect');
+    if (near) hud.setPrompt(sim.reachCheck(near.id) ? 'walk closer' : 'click to inspect');
     else hud.setPrompt(null);
   });
 
@@ -885,7 +902,9 @@ async function start(): Promise<void> {
   });
 
   host.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 || sim.phase !== 'beat' || panel) return;
+    // any open panel owns the click; the modals also stop propagation, and this is the belt
+    // to that braces (the playtest bug was a click landing on the world through a modal)
+    if (e.button !== 0 || sim.phase !== 'beat' || panel || desk || sceneView || incident) return;
     const target = scene.toWorld(e.clientX, e.clientY);
     const near = sim.citizens.nearest(target, 34);
     if (near) {

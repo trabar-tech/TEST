@@ -58,6 +58,15 @@ function clickByText(text: string): void {
   b.click();
 }
 
+/** Walk to a citizen the way a player does; reach is enforced since the first playtest. */
+function walkTo(sim: Simulation, id: string): void {
+  for (let i = 0; i < 60 * 60 && sim.reachCheck(id) !== null; i++) {
+    if (!sim.approaching) sim.approachAndInspect(id);
+    sim.clock.advanceRealMs(1000 / 60);
+    if (sim.shiftOver) break;
+  }
+}
+
 describe('a whole shift', () => {
   it('runs briefing → beat → inspection → desk → audit → debrief', () => {
     const sim = makeSim();
@@ -72,8 +81,9 @@ describe('a whole shift', () => {
     expect(sim.moveTo(sim.map.toWorld(20, 14)).ok).toBe(true);
     for (let i = 0; i < 60; i++) sim.clock.advanceRealMs(1000 / 60);
 
-    // inspect three people the way a player would: click, ask, decide
+    // inspect three people the way a player would: walk to them, click, ask, decide
     for (const id of ['c-0221', 'c-0307', 'c-0414']) {
+      walkTo(sim, id);
       sim.openInspection(id);
       const panel = createInspectionPanel(sim, host, () => {
         panel.destroy();
@@ -117,6 +127,7 @@ describe('a whole shift', () => {
   it('an honest shift is cleared and an evasive one is not', () => {
     const honest = makeSim();
     honest.beginBeat();
+    walkTo(honest, 'c-0307');
     honest.openInspection('c-0307');
     honest.resolveInspection('P');
     honest.openDesk();
@@ -126,6 +137,7 @@ describe('a whole shift', () => {
 
     const evasive = makeSim();
     evasive.beginBeat();
+    walkTo(evasive, 'c-0221');
     evasive.openInspection('c-0221');
     evasive.resolveInspection('C');
     evasive.openDesk();
@@ -137,6 +149,7 @@ describe('a whole shift', () => {
   it('the case file renders claims, cracks and never the truth', () => {
     const sim = makeSim();
     sim.beginBeat();
+    walkTo(sim, 'c-0221');
     sim.openInspection('c-0221');
     sim.resolveInspection('P');
     sim.openDesk();

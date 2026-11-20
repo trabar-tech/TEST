@@ -116,6 +116,16 @@ describe('when a home becomes Known', () => {
   });
 });
 
+/** Walk to a citizen and open the inspection, the way a player does (reach is enforced). */
+function talkTo(s: Simulation, id: string): void {
+  for (let i = 0; i < 60 * 60 && s.reachCheck(id) !== null; i++) {
+    if (!s.approaching) s.approachAndInspect(id);
+    s.clock.advanceRealMs(1000 / 60);
+    if (s.shiftOver) break;
+  }
+  s.openInspection(id);
+}
+
 describe('the inspection is where the player learns it', () => {
   function sim() {
     const s = new Simulation({
@@ -132,7 +142,7 @@ describe('the inspection is where the player learns it', () => {
 
   it('puts the household line in the docket note, so it can be read before signing', () => {
     const s = sim();
-    s.openInspection('c-0221');
+    talkTo(s, 'c-0221');
     const event = s.resolveInspection('P')!;
     expect(event.note).toMatch(/They live in/);
     expect(event.edge?.household_id).toBe(s.homeOf('c-0221')?.household_id);
@@ -142,21 +152,21 @@ describe('the inspection is where the player learns it', () => {
   it('resolves the same home twice, even after other work in between', () => {
     const s = sim();
     const first = s.homeOf('c-0221');
-    s.openInspection('c-0307');
+    talkTo(s, 'c-0307');
     s.resolveInspection('P');
     expect(s.homeOf('c-0221')).toEqual(first);
   });
 
   it('does not make them Known on one inspection', () => {
     const s = sim();
-    s.openInspection('c-0221');
+    talkTo(s, 'c-0221');
     s.resolveInspection('P');
     expect(s.knownCandidate('c-0221')).toBeNull();
   });
 
   it('makes them Known once a line has been filed naming them', () => {
     const s = sim();
-    s.openInspection('c-0221');
+    talkTo(s, 'c-0221');
     const event = s.resolveInspection('P')!;
     s.openDesk();
     s.file(event.ref, { claim: { ...event.draft }, tags: [], free_text: '' });
@@ -167,7 +177,7 @@ describe('the inspection is where the player learns it', () => {
 
   it('the household can then be materialised as a person, from the same record', () => {
     const s = sim();
-    s.openInspection('c-0221');
+    talkTo(s, 'c-0221');
     const event = s.resolveInspection('P')!;
     const agent = materialise(s.sector!, event.edge!.household_id, 2026);
     expect(agent.household_id).toBe(event.edge!.household_id);
@@ -184,7 +194,7 @@ describe('the inspection is where the player learns it', () => {
       citizens: citizensJson,
     });
     bare.beginBeat();
-    bare.openInspection('c-0221');
+    talkTo(bare, 'c-0221');
     const event = bare.resolveInspection('P')!;
     expect(event.edge).toBeUndefined();
     expect(event.note).not.toMatch(/They live in/);

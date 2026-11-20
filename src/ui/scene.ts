@@ -95,6 +95,22 @@ export function createScene(host: HTMLElement, opts: SceneOptions): SceneHandle 
     ),
   );
 
+  /**
+   * Swallow input at the overlay.
+   *
+   * Playtest, first session: answering a question also *moved the Warden*, because the
+   * overlay is a child of the app host and the canvas's click-to-move listener is on that
+   * host. A click on a modal is not a click on the world. Fixed here rather than in
+   * `main.ts` so every future modal gets it by existing.
+   */
+  // NB: bubble phase, *not* capture. A capture-phase stopPropagation on a container fires
+  // before the event reaches the target, so the modal's own buttons never received their
+  // clicks — the overlay swallowed its own controls. Found by a probe, not by reading.
+  for (const type of ['pointerdown', 'pointerup', 'click', 'wheel'] as const) {
+    overlay.addEventListener(type, (e) => e.stopPropagation());
+  }
+  overlay.addEventListener('contextmenu', (e) => e.preventDefault());
+
   overlay.append(box);
   host.append(overlay);
 

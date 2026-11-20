@@ -27,18 +27,31 @@ const citizensJson = JSON.parse(
   readFileSync(resolve(__dirname, '../content/examples/citizens.slice.json'), 'utf8'),
 ) as CitizenFile;
 
+/** Walk to a citizen and open the inspection, the way a player does (reach is enforced). */
+function talkTo(sim: Simulation, id: string): void {
+  for (let i = 0; i < 60 * 60 && sim.reachCheck(id) !== null; i++) {
+    if (!sim.approaching) sim.approachAndInspect(id);
+    sim.clock.advanceRealMs(1000 / 60);
+    if (sim.shiftOver) break;
+  }
+  sim.openInspection(id);
+}
+
 function simWithDocket(): Simulation {
+  // NB: deep-copied. `talkTo` advances the shared citizens JSON's runtime state through the
+  // sim, and these tests share one module-level fixture — mutating it made the *last* test in
+  // the file behave differently from the second, which is a bug in the test, not the game.
   const sim = new Simulation({
     seed: 11,
     shift: 1,
     map: new TileMap(mapJsonToDef(mapJson)),
     mapJson,
-    citizens: citizensJson,
+    citizens: JSON.parse(JSON.stringify(citizensJson)) as CitizenFile,
   });
   sim.beginBeat();
-  sim.openInspection('c-0221'); // defective chip
+  talkTo(sim, 'c-0221'); // defective chip
   sim.resolveInspection('P');
-  sim.openInspection('c-0307'); // clean
+  talkTo(sim, 'c-0307'); // clean
   sim.resolveInspection('P');
   sim.openDesk();
   return sim;
@@ -188,7 +201,7 @@ describe('the inspection panel', () => {
   it('shows the card, the checks and the conversation', () => {
     const sim = simWithDocket();
     sim.beginBeat();
-    sim.openInspection('c-0221');
+    talkTo(sim, 'c-0221');
     createInspectionPanel(sim, host, () => {});
     expect(host.textContent).toContain('CIVIL REGISTRY');
     expect(host.textContent).toContain('M. Ostrow');
@@ -199,7 +212,7 @@ describe('the inspection panel', () => {
   it('a failed check is marked, and the failing field is named', () => {
     const sim = simWithDocket();
     sim.beginBeat();
-    sim.openInspection('c-0221');
+    talkTo(sim, 'c-0221');
     createInspectionPanel(sim, host, () => {});
     const text = host.textContent ?? '';
     expect(text).toContain('✗');
@@ -209,7 +222,7 @@ describe('the inspection panel', () => {
   it('asking a question adds it to the transcript with its tell', () => {
     const sim = simWithDocket();
     sim.beginBeat();
-    sim.openInspection('c-0221');
+    talkTo(sim, 'c-0221');
     const panel = createInspectionPanel(sim, host, () => {});
     byText('button', 'Who is your shift boss?').click();
     expect(sim.inspection!.transcript).toHaveLength(1);
@@ -225,7 +238,7 @@ describe('the inspection panel', () => {
   it('deciding closes the panel and hands the outcome to the docket', () => {
     const sim = simWithDocket();
     sim.beginBeat();
-    sim.openInspection('c-0221');
+    talkTo(sim, 'c-0221');
     let closed = 0;
     createInspectionPanel(sim, host, () => { closed += 1; });
     byText('button', 'Detain').click();
@@ -254,7 +267,7 @@ describe('the desk warns about a contradicting standing order before signing', (
       directives: live,
     });
     sim.beginBeat();
-    sim.openInspection('c-0221');
+    talkTo(sim, 'c-0221');
     sim.resolveInspection('P');
     sim.openDesk();
     const desk = createDesk(sim, host, { onSubmit: () => {} });
