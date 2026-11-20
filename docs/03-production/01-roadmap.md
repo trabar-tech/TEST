@@ -146,8 +146,15 @@ system.
 
 ## Phase 4 — Economy, family, campaign, endings (6–8 sessions)
 
+**Status: entry work in progress.** The headless campaign runner — Phase 4's own first entry
+criterion — exists (`npm run campaign`, `src/systems/campaign.ts`), shares the shift boundary
+with the browser, and has already falsified three assumptions; see
+[`phases/05-phase-4-entry.md`](phases/05-phase-4-entry.md). **G2 has not been run**, so the
+phase transition is not declared.
+
 | ID | Task | Acceptance check |
 |---|---|---|
+| `[~]` P4-T04 (harness) | Headless campaign runner, 4 policies, 15 shifts | `npm run campaign` — deterministic per seed; policies diverge; 13 tests |
 | `[ ]` P4-T01 | Rank/quota/perk/requisition systems | promotion always adds a verb, never just a number |
 | `[ ]` P4-T02 | Household ledger, debt tree, Syndicate thread | negative FP recoverable within 2 shifts via ≥1 path |
 | `[ ]` P4-T03 | Family scenes (reactive, not nagging) | every family scene references *today's* events |

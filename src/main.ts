@@ -59,10 +59,10 @@ import { createPlaylist } from '@ui/playlist';
 import {
   describeSector,
   forceIndexOf,
-  nextShift as advanceSector,
   readSector,
   recordForce,
 } from '@systems/sector';
+import { advanceShift, ordersForShift } from '@systems/shift-cycle';
 import { ORDER_HOTKEYS, type OrderKind } from '@systems/tactical/types';
 import { stepCrowd, type CrowdDef } from '@systems/tactical/crowd';
 import { crowdDocket } from '@systems/tactical/paperwork';
@@ -174,18 +174,7 @@ async function start(): Promise<void> {
    * rare enough to be a turn of the screw rather than the weather.
    */
   const directives = loaded.bundle.directives;
-  const shiftOrders = (shift: number): typeof directives => {
-    if (directives.length === 0) return [];
-    const start = ((shift - 1) * 3) % directives.length;
-    const picked = [0, 1, 2].map((i) => directives[(start + i) % directives.length]!);
-    // the declared pair is the point of the system, so the shift that draws the
-    // first half always draws the second: a contradiction the player can plan for
-    const partner = picked
-      .flatMap((d) => d.contradicts)
-      .map((id) => directives.find((d) => d.id === id))
-      .filter((d): d is (typeof directives)[number] => d !== undefined && !picked.includes(d));
-    return [...picked, ...partner];
-  };
+  const shiftOrders = (shift: number): typeof directives => ordersForShift(directives, shift);
   sim.setDirectives(shiftOrders(1));
   const hud = createHud(sim, host);
   const overlay = createDebugOverlay(sim, host);
@@ -855,12 +844,13 @@ async function start(): Promise<void> {
     debrief?.destroy();
     debrief = null;
     const beliefBefore = sim.belief();
-    sim.record.age();
-    sim.docket.length = 0;
-    sim.inspectionsDone = 0;
-    sim.state.shift += 1;
-    sim.setDirectives(shiftOrders(sim.state.shift));
-    const sector = advanceSector(sim.state);
+    // one shared implementation: the headless campaign runner calls this exact function,
+    // so a simulated 15 shifts and a played 15 shifts cannot diverge
+    const cycle = advanceShift(sim, {
+      directives: loaded.bundle.directives,
+      epilogues: loaded.bundle.micro_events.filter((e) => e._type === 'epilogue_storylet'),
+    });
+    const sector = { memory: cycle.sector };
     forceIndex = { sector: sector.memory.sector, value: sector.memory.force };
     sim.phase = 'brief';
     sim.clock.restore({ tick: 0, simSeconds: 0, mode: 'pause' });

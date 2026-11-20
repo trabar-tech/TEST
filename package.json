@@ -2,7 +2,7 @@
   "name": "civic-order",
   "version": "0.0.1",
   "private": true,
-  "description": "CIVIC ORDER — a 2D top-down enforcement-officer simulator. Browser-first, single-player.",
+  "description": "CIVIC ORDER \u2014 a 2D top-down enforcement-officer simulator. Browser-first, single-player.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "validate": "tsx scripts/validate-content.ts",
     "verify": "npm run typecheck && npm run test",
-    "check:boundaries": "node scripts/check-boundaries.mjs"
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "campaign": "tsx scripts/campaign.ts"
   },
   "keywords": [
     "game",

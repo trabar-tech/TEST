@@ -139,3 +139,8 @@ P0 ──▶ P1 (Record) ──G0──▶ P2 (tactical) ──G1──▶ P3 (s
 | P3 overruns | content authoring is the bottleneck | Halve micro-events to 30; rely on epilogue callbacks to reuse them. Cuts run length, not systems. |
 | P4 overruns | campaign tuning won't converge | Ship 10 shifts, not 15 (cut #5). Keep Continuing Service. |
 | G4 fails | attention economy isn't tense | Cut the expansion. Spend the sessions on Continuing Service + New Game+. |
+
+## Phase 4 entry
+
+- [`05-phase-4-entry.md`](05-phase-4-entry.md) — the headless campaign runner, and the three
+  assumptions it falsified in its first hour. Entry work only: **G2 has not been run.**

@@ -743,6 +743,11 @@ export class Simulation {
     return Math.round(pressureFromIndex(forceIndexOf(this.state)) * 100);
   }
 
+  /** Households the Warden can name, for recurrence and the campaign runner. */
+  knownHouseholdIds(): string[] {
+    return [...this.filedNames];
+  }
+
   /** The Arbiter's state, for the deck's pacing fit. */
   arbiterState(): 'calm' | 'build' | 'peak' | 'release' {
     return this.arbiter?.state ?? 'calm';

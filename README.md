@@ -46,14 +46,16 @@ npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
                    # E opens the desk early, C opens the case file, F enters the flat,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 651 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 665 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
+npm run campaign   # headless 15-shift campaign: 4 policies x N seeds, one line per run
 ```
 
-What exists today is one complete shift, the tactical layer that feeds it, and (headless) the
-Phase 3 simulation behind it: a 60-household district, three directors, and the storylet deck
-they draw from. The district's temperature is never shown as a number — the loudspeaker and the
+What exists today is one complete shift, the tactical layer that feeds it, and the Phase 3
+simulation behind it: a 60-household district, three directors, and the storylet deck they draw
+from. A campaign runner plays fifteen shifts headlessly with four different Warden policies, so
+a change to the district curve can be measured rather than argued about. The district's temperature is never shown as a number — the loudspeaker and the
 ambient lines change with it, so the street tells you what kind of day it is.
 
 The six people on the street are six of the district's sixty households: inspecting someone

@@ -144,13 +144,38 @@ export interface Hardening {
   became: 'available' | 'informant' | null;
 }
 
+/**
+ * Shifts a household must spend above the line before it is *available*.
+ *
+ * This constant is the whole difference between "the slow turn" the design describes and
+ * what the code actually did. `harden()` used to promote on a single crossing of 0.7, and
+ * after one refusal one household crossed and took its block with it through the
+ * neighbour share: six households became available in one night, from one line. The
+ * campaign runner found it in the first hour of its life, which is exactly what it is for.
+ */
+export const TURN_SHIFTS = 3;
+
 export function harden(household: Household): Hardening {
+  const angryNights = household.flags.filter((f) => f === 'angry').length;
+
   if (household.grievance >= 0.7 && !household.flags.includes('available')) {
+    // below the turn: record the night and wait. A household that cools off loses the
+    // streak entirely, so grievance has to be *sustained* to become a state.
+    if (angryNights + 1 < TURN_SHIFTS) {
+      return { household: { ...household, flags: [...household.flags, 'angry'] }, became: null };
+    }
     return { household: { ...household, flags: [...household.flags, 'available'] }, became: 'available' };
   }
+
   if (household.grievance <= 0.12 && household.loyalty > 0.7 && !household.flags.includes('informant')) {
     return { household: { ...household, flags: [...household.flags, 'informant'] }, became: 'informant' };
   }
+
+  // cooled off: the surveillance that was building evaporates
+  if (household.grievance < 0.7 && angryNights > 0) {
+    return { household: { ...household, flags: household.flags.filter((f) => f !== 'angry') }, became: null };
+  }
+
   return { household, became: null };
 }
 

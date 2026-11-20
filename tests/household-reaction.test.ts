@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { NEIGHBOUR_SHARE, REACTIONS, harden, reactToFilings } from '@systems/household-reaction';
+import { NEIGHBOUR_SHARE, REACTIONS, TURN_SHIFTS, harden, reactToFilings } from '@systems/household-reaction';
 import { generateSector, legitimacy, temperature, type SectorState } from '@systems/households';
 
 const sector = (over: Partial<SectorState> = {}): SectorState => ({
@@ -138,11 +138,28 @@ describe('it does not wash off', () => {
 });
 
 describe('grievance hardens into a state a faction can use', () => {
-  it('an angry household becomes available, once', () => {
-    const household = { ...sector().households[0]!, grievance: 0.75 };
-    const once = harden(household);
-    expect(once.became).toBe('available');
-    expect(harden(once.household).became).toBeNull();
+  it('one angry night does not make a household available — it takes TURN_SHIFTS', () => {
+    let household = { ...sector().households[0]!, grievance: 0.75 };
+    const nights: Array<'available' | 'informant' | null> = [];
+    for (let i = 0; i < TURN_SHIFTS; i++) {
+      const step = harden(household);
+      nights.push(step.became);
+      household = step.household;
+    }
+    // watching, watching, then the turn — never on the first night
+    expect(nights.slice(0, -1).every((b) => b === null)).toBe(true);
+    expect(nights.at(-1)).toBe('available');
+    expect(harden(household).became).toBeNull();
+  });
+
+  it('a household that cools off loses the streak, so grievance must be sustained', () => {
+    const hot = harden({ ...sector().households[0]!, grievance: 0.75 }).household;
+    expect(hot.flags).toContain('angry');
+    const cooled = harden({ ...hot, grievance: 0.4 });
+    expect(cooled.household.flags).not.toContain('angry');
+    // and a second hot night starts the count again rather than resuming it
+    const again = harden({ ...cooled.household, grievance: 0.75 });
+    expect(again.became).toBeNull();
   });
 
   it('a contented household becomes an informant', () => {
