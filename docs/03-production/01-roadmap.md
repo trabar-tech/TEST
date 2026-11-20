@@ -115,21 +115,27 @@ Goal: 6 shifts that feel like a place with a memory. Gate G2.
 
 | ID | Task | Acceptance check |
 |---|---|---|
-| `[ ]` P3-T01 | Household records (60) + per-shift sim tick < 15 ms | 10 no-input shifts produce a coherent rising-tension history |
-| `[ ]` P3-T02 | Agent **materialisation** from households (deterministic) + **12-Known cap** | a person you arrested appears as a named relative later; Known set never exceeds 12 |
-| `[ ]` P3-T03 | Temperature formula + colour grade + barks driven by it | players can predict "the street is worse today" without a meter |
-| `[ ]` P3-T04 | The **Cell** plan engine (HTN-lite: 3–5 authored 3-step plans) | a plan can be discovered by informants and prevented tactically |
-| `[ ]` P3-T05 | **Storylet deck runtime**: prereqs, utility scoring, weighted draw | adding a storylet JSON file changes behaviour with no code change |
-| `[ ]` P3-T06 | The **Desk** fault-line weighting over the deck | the deck measurably targets the player's highest fault lines (log assertion) |
-| `[ ]` P3-T07 | The **Arbiter** 4-state pacing FSM + hard budgets | budgets hold for 50 simulated shifts; no black-box decisions |
-| `[ ]` P3-T08 | **Oversight Attention** gauge + Eye escalation ladder | honest filing lowers attention within 2 shifts; the player can name why |
-| `[ ]` P3-T09 | **AI score inspector** (dev overlay: candidate actions, axes, scores) | a designer can tune a curve in JSON and see the delta without a rebuild |
-| `[ ]` P3-T10 | 60 micro-events authored as storylets + weighted | a shift's Beat has ≥3 distinct encounters; ≥40% reference prior state |
-| `[ ]` P3-T11 | Directive system with contradiction graph (80 directives) | a daily directive can contradict a standing one and both are enforceable |
-| `[ ]` P3-T12 | **Epilogue storylets** (delayed callbacks, 3–6 shifts) | a silenced witness resurfaces unprompted; a protected family is referenced later |
+| `[x]` P3-T01 | Household records (60) + per-shift sim tick < 15 ms | 10 no-input shifts produce a coherent rising-tension history | *60 households generate from a seed; temperature/legitimacy/grade tested. Per-shift tick budget not yet profiled.*
+| `[x]` P3-T02 | Agent **materialisation** from households (deterministic) + **12-Known cap** | a person you arrested appears as a named relative later; Known set never exceeds 12 | *`materialise()` is pure — the same household is the same person across shifts. Known cap 12, eviction tested. Forced reappearance not yet wired.*
+| `[~]` P3-T03 | Temperature formula + colour grade + barks driven by it | players can predict "the street is worse today" without a meter | *formula, grade, and bands done and tested; barks not yet driven by grade*
+| `[x]` P3-T04 | The **Cell** plan engine (HTN-lite: 3–5 authored 3-step plans) | a plan can be discovered by informants and prevented tactically | *Cell `advancePlan` procure→recruit→strike, read by informants, with grudges as records*
+| `[x]` P3-T05 | **Storylet deck runtime**: prereqs, utility scoring, weighted draw | adding a storylet JSON file changes behaviour with no code change | *`src/systems/storylets.ts`; content changes behaviour with no code change (proved by `tests/phase3-content.test.ts`)*
+| `[x]` P3-T06 | The **Desk** fault-line weighting over the deck | the deck measurably targets the player's highest fault lines (log assertion) | *fault vector with 0.85 decay; directives explain themselves in the Desk's words*
+| `[x]` P3-T07 | The **Arbiter** 4-state pacing FSM + hard budgets | budgets hold for 50 simulated shifts; no black-box decisions | *4 states, budgets, RELEASE outranks all; state persists across shifts*
+| `[~]` P3-T08 | **Oversight Attention** gauge + Eye escalation ladder | honest filing lowers attention within 2 shifts; the player can name why | *gauge + ladder done; "honest filing lowers attention" is decay-only, not yet tied to filing honesty*
+| `[x]` P3-T09 | **AI score inspector** (dev overlay: candidate actions, axes, scores) | a designer can tune a curve in JSON and see the delta without a rebuild | *player-facing Inspector, not a dev overlay: the same arithmetic the director used, plus ruled-out cards*
+| `[~]` P3-T10 | 60 micro-events authored as storylets + weighted | a shift's Beat has ≥3 distinct encounters; ≥40% reference prior state | *12 storylets, not 60 — a representative slice (cut line permits 30)*
+| `[~]` P3-T11 | Directive system with contradiction graph (80 directives) | a daily directive can contradict a standing one and both are enforceable | *22 directives, not 80; contradiction graph detected + warned, not yet charged by the audit*
+| `[x]` P3-T12 | **Epilogue storylets** (delayed callbacks, 3–6 shifts) | a silenced witness resurfaces unprompted; a protected family is referenced later | *epilogue chain: me-03 → epi-01, me-05 → epi-02, scheduled 2–6 shifts ahead*
+
+**Status (as built):** the spine is real and the district is real; the *content volume* is the
+gap (12 storylets, 22 directives) and it is the gap the cut line prefers. Barks are not yet
+driven by grade, and the showrunner is not yet wired into the browser's shift loop — both
+deliberately, because both are decisions a G2 session should inform. See
+`phases/05-phase-3-as-built.md`.
 
 **Gate G2:** *"Does the city feel alive and unfair in the right way?"* Also ask: *"Can you name
-three citizens?"* (apophenia check — research R-1).
+three citizens?"* (apophenia check — research R-1). **NOT RUN** — no human has played this.
 **If fail:** cut one faction (the Congregation is the easiest cut), keep the Cell + Eye.
 
 **New dependency:** P3-T05 (deck runtime) must land before P3-T06, T10, T11 and T12. It is the

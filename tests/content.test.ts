@@ -85,10 +85,17 @@ describe('content indexing', () => {
     expect(loaded.byId.directives.has('dir-0197')).toBe(true);
   });
 
-  it('measures the connective-tissue ratio', () => {
-    const loaded = indexContent(parseContent(raw()));
-    // the epilogue references me-0031, the origin storylet does not → 0.5
-    expect(loaded.report.connectiveTissueRatio).toBeCloseTo(0.5, 5);
+  it('measures the connective-tissue ratio as a fraction of the deck', () => {
+    const bundle = parseContent(raw());
+    const loaded = indexContent(bundle);
+    // computed, not hardcoded: the ratio moves every time content is added, and a
+    // literal here would just break the build instead of testing anything
+    const referencing = bundle.micro_events.filter((s) => s.references.length > 0).length;
+    expect(loaded.report.connectiveTissueRatio).toBeCloseTo(
+      referencing / bundle.micro_events.length,
+      5,
+    );
+    expect(loaded.report.connectiveTissueRatio).toBeGreaterThan(0);
   });
 
   it('finds unresolved storylet references', () => {

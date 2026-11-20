@@ -101,6 +101,19 @@ export const StoryletSchema = z.object({
   /** prior-state dependencies — the connective-tissue budget is measured from this */
   references: z.array(z.string()).default([]),
   deck: z.string().min(1).default('beat_morning'),
+  /**
+   * The directors' vocabulary (SYS-DIR-01 §6). These live on the storylet rather
+   * than beside it because the scorer multiplies all four factors for every card,
+   * and a field the schema strips is a field the director silently ignores.
+   */
+  /** how sharp this card is; the Arbiter's RELEASE state refuses anything >= 0.5 */
+  pressure: z.number().min(0).max(1).default(0.5),
+  /** which Warden habits the Desk should lean on when offering this */
+  fault_lines: z.array(z.string()).default([]),
+  /** the temperature band it was written for; outside it the card fades, not vanishes */
+  temperature_band: z.tuple([z.number(), z.number()]).optional(),
+  /** novelty grouping; defaults to the deck name */
+  archetype: z.string().min(1).optional(),
   weight: z
     .object({
       base: z.number().positive().default(1),

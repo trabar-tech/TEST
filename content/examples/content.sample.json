@@ -1,31 +1,46 @@
 {
   "$schema": "./_schema-note.json",
   "_note": "Example content, not final tuning. Schema lives in src/core/content.ts (zod). Every field must be present; unknown fields fail validation loudly.",
-
   "incidents": [
     {
       "id": "inc-014",
       "archetype": "flat_breach",
       "title": "Flat 14 — Unlicensed Printing",
-      "difficulty_band": [2, 4],
-      "fault_lines": ["brutality", "honesty", "family_pressure"],
+      "difficulty_band": [
+        2,
+        4
+      ],
+      "fault_lines": [
+        "brutality",
+        "honesty",
+        "family_pressure"
+      ],
       "map_id": "map_tenement_row_a",
       "params": {
         "occupants": 3,
         "armed": 1,
         "third_party_present": true,
-        "doors": ["locked", "barred"],
-        "camera_in_range": ["cam:K4-2"]
+        "doors": [
+          "locked",
+          "barred"
+        ],
+        "camera_in_range": [
+          "cam:K4-2"
+        ]
       },
       "dispatch_text": "Sector 4. Block C. Report of unlicensed printing, flat fourteen. Occupants unknown. Compliance advised.",
       "expected_report": {
         "category": "incident",
-        "classification_choices": ["R", "NR", "D", "P"],
+        "classification_choices": [
+          "R",
+          "NR",
+          "D",
+          "P"
+        ],
         "likely_force_floor": 2
       }
     }
   ],
-
   "directives": [
     {
       "id": "dir-0180",
@@ -39,14 +54,213 @@
       "id": "dir-0197",
       "type": "daily",
       "text": "Effective 06:00: curfew pass checks are suspended. Visible patrol presence is required on all main thoroughfares.",
-      "quota": { "inspections": 40, "detentions": 8, "visible_patrol_minutes": 30 },
-      "contradicts": ["dir-0180"],
+      "quota": {
+        "inspections": 40,
+        "detentions": 8,
+        "visible_patrol_minutes": 30
+      },
+      "contradicts": [
+        "dir-0180"
+      ],
       "audit_weight": 2,
-      "reward": { "standing": 2, "requisition": 1 },
-      "penalty": { "standing": -2, "review": 1 }
+      "reward": {
+        "standing": 2,
+        "requisition": 1
+      },
+      "penalty": {
+        "standing": -2,
+        "review": 1
+      }
+    },
+    {
+      "id": "dir-0201",
+      "type": "standing",
+      "text": "Every patrol must file a line for each door it passes, whether or not it stops.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0202",
+      "type": "daily",
+      "text": "Sector 4 will produce forty-two household checks this shift. The number is not negotiable.",
+      "quota": {
+        "inspections": 42,
+        "detentions": 7,
+        "visible_patrol_minutes": 210
+      },
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0203",
+      "type": "standing",
+      "text": "Ration shortfalls are to be reported, not resolved. Resolution is a different office's problem.",
+      "quota": null,
+      "contradicts": [
+        "dir-0204"
+      ],
+      "audit_weight": 1
+    },
+    {
+      "id": "dir-0204",
+      "type": "standing",
+      "text": "Ration shortfalls are to be resolved on the ground and reported afterwards, in that order.",
+      "quota": null,
+      "contradicts": [
+        "dir-0203"
+      ],
+      "audit_weight": 1
+    },
+    {
+      "id": "dir-0205",
+      "type": "daily",
+      "text": "The curfew pass reissue is behind. Nine hundred passes remain unchecked.",
+      "quota": {
+        "inspections": 900,
+        "detentions": 150,
+        "visible_patrol_minutes": 4500
+      },
+      "contradicts": [],
+      "audit_weight": 1
+    },
+    {
+      "id": "dir-0206",
+      "type": "standing",
+      "text": "Force above control requires a logged authorisation before it is used, not after.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 3
+    },
+    {
+      "id": "dir-0207",
+      "type": "standing",
+      "text": "Detentions are to be reviewed within two shifts. Reviews that find nothing are to be reported as findings.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0208",
+      "type": "standing",
+      "text": "Informant identities are not to appear in any report, including this one.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0209",
+      "type": "daily",
+      "text": "Eleven households in block C are to be served notice of requisition.",
+      "quota": {
+        "inspections": 11,
+        "detentions": 1,
+        "visible_patrol_minutes": 55
+      },
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0210",
+      "type": "standing",
+      "text": "The congregation's ward is not exempt from inspection. No institution is.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0211",
+      "type": "standing",
+      "text": "Officers are reminded that a cleared room is a claim, and claims are audited.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 3
+    },
+    {
+      "id": "dir-0212",
+      "type": "daily",
+      "text": "Sixteen arrests are expected this shift. Quality is the arresting officer's concern, not quantity.",
+      "quota": {
+        "inspections": 16,
+        "detentions": 2,
+        "visible_patrol_minutes": 80
+      },
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0213",
+      "type": "standing",
+      "text": "All incidents involving a third party are to be classified before the report is closed.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0214",
+      "type": "standing",
+      "text": "Patrols are not to enter the canal market after the twentieth hour without a second officer.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 1
+    },
+    {
+      "id": "dir-0215",
+      "type": "daily",
+      "text": "Camera coverage in sector 4 is to reach twelve of twelve. Three remain dark.",
+      "quota": {
+        "inspections": 3,
+        "detentions": 1,
+        "visible_patrol_minutes": 15
+      },
+      "contradicts": [],
+      "audit_weight": 2
+    },
+    {
+      "id": "dir-0216",
+      "type": "standing",
+      "text": "Officers who are injured on duty are to file the incident report before receiving treatment.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 1
+    },
+    {
+      "id": "dir-0217",
+      "type": "standing",
+      "text": "Where a household contains an unregistered person, the household, not the person, is charged.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 3
+    },
+    {
+      "id": "dir-0218",
+      "type": "standing",
+      "text": "The Directorate has noted the discrepancy between reports filed and incidents dispatched. It will note it again.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 3
+    },
+    {
+      "id": "dir-0219",
+      "type": "daily",
+      "text": "Night patrols are to log twenty door checks each. Eight will do it honestly.",
+      "quota": {
+        "inspections": 20,
+        "detentions": 3,
+        "visible_patrol_minutes": 100
+      },
+      "contradicts": [],
+      "audit_weight": 1
+    },
+    {
+      "id": "dir-0220",
+      "type": "standing",
+      "text": "No officer is to be alone with a detainee. Where this is unavoidable, no officer is to be alone.",
+      "quota": null,
+      "contradicts": [],
+      "audit_weight": 2
     }
   ],
-
   "citizens": [
     {
       "id": "c-0221",
@@ -61,36 +275,86 @@
         "curfew_pass": true,
         "chip_serial": "C-4471-8"
       },
-      "irregularity": { "field": "chip_serial", "kind": "wrong_class_digit", "severity": 1 },
-      "knowledge": ["cell_safehouse_hint"],
-      "routine": ["queue_ration", "work_laundry", "curfew_run_home"]
+      "irregularity": {
+        "field": "chip_serial",
+        "kind": "wrong_class_digit",
+        "severity": 1
+      },
+      "knowledge": [
+        "cell_safehouse_hint"
+      ],
+      "routine": [
+        "queue_ration",
+        "work_laundry",
+        "curfew_run_home"
+      ]
     }
   ],
-
-  "_storylet_note": "Everything below is a STORYLET (ADR-0004): content + prerequisites + effects, drawn from a weighted deck. `requires` is a predicate over sim state; `effects` writes to the world; `references` lists prior-state dependencies (connective-tissue budget: >=40% of content must reference something).",
-
+  "_storylet_note": "Phase 3 slice: 8 micro-events + 2 epilogues, 60% connective (each names a prior record or household state). `pressure` is the Arbiter's sharpness dial and decides what RELEASE will refuse; `fault_lines` is what the Desk leans on; `temperature_band` makes a card fade rather than vanish outside the weather it was written for.",
   "micro_events": [
     {
       "id": "me-0031",
       "title": "The queue dispute",
       "requires": {
-        "temperature": [0, 60],
-        "time_of_day": ["morning"],
+        "temperature": [
+          0,
+          60
+        ],
+        "time_of_day": [
+          "morning"
+        ],
         "shift_min": 1
       },
       "references": [],
       "deck": "beat_morning",
-      "weight": { "base": 1.0, "connective_bonus": 0.0 },
+      "weight": {
+        "base": 1.0,
+        "connective_bonus": 0.0
+      },
       "beats": [
-        { "text": "An old woman is holding a place for a man who isn't here. Two people behind her are loud about it." }
+        {
+          "text": "An old woman is holding a place for a man who isn't here. Two people behind her are loud about it."
+        }
       ],
       "resolutions": [
-        { "id": "mediate", "label": "Sort it out quietly", "claim": "-", "legitimacy": 1, "standing": 0, "time": 40 },
-        { "id": "cite", "label": "Cite the woman", "claim": "C", "legitimacy": -1, "standing": 0.5, "time": 15 },
-        { "id": "detain", "label": "Detain the loud one", "claim": "D", "legitimacy": -2, "standing": 1, "time": 25 },
-        { "id": "ignore", "label": "Walk on", "claim": "-", "legitimacy": 0, "standing": 0, "time": 0,
-          "note": "auto-filed by the audit if a camera saw you pass", "witness_gate": true,
-          "effects": { "set_flag": "ignored_queue_dispute", "schedule_epilogue": "me-0031-epi" } }
+        {
+          "id": "mediate",
+          "label": "Sort it out quietly",
+          "claim": "-",
+          "legitimacy": 1,
+          "standing": 0,
+          "time": 40
+        },
+        {
+          "id": "cite",
+          "label": "Cite the woman",
+          "claim": "C",
+          "legitimacy": -1,
+          "standing": 0.5,
+          "time": 15
+        },
+        {
+          "id": "detain",
+          "label": "Detain the loud one",
+          "claim": "D",
+          "legitimacy": -2,
+          "standing": 1,
+          "time": 25
+        },
+        {
+          "id": "ignore",
+          "label": "Walk on",
+          "claim": "-",
+          "legitimacy": 0,
+          "standing": 0,
+          "time": 0,
+          "note": "auto-filed by the audit if a camera saw you pass",
+          "witness_gate": true,
+          "effects": {
+            "set_flag": "ignored_queue_dispute",
+            "schedule_epilogue": "me-0031-epi"
+          }
+        }
       ]
     },
     {
@@ -98,28 +362,672 @@
       "_type": "epilogue_storylet",
       "title": "The woman from the queue",
       "requires": {
-        "flags_any": ["ignored_queue_dispute", "cited_queue_woman"],
-        "shift_since_cause": [3, 6],
+        "flags_any": [
+          "ignored_queue_dispute",
+          "cited_queue_woman"
+        ],
+        "shift_since_cause": [
+          3,
+          6
+        ],
         "known_set_has_room": true
       },
-      "references": ["me-0031"],
+      "references": [
+        "me-0031"
+      ],
       "deck": "street_epilogue",
-      "weight": { "base": 1.4, "connective_bonus": 0.6 },
+      "weight": {
+        "base": 1.4,
+        "connective_bonus": 0.6
+      },
       "beats": [
-        { "text": "She is outside the ration office again. She has been holding that place for four days, for a man who is not coming back." },
-        { "text": "She recognises the mask. She does not look away." }
+        {
+          "text": "She is outside the ration office again. She has been holding that place for four days, for a man who is not coming back."
+        },
+        {
+          "text": "She recognises the mask. She does not look away."
+        }
       ],
       "resolutions": [
-        { "id": "ask", "label": "Ask who he was", "claim": "-", "legitimacy": 2, "integrity_hint": true, "time": 60 },
-        { "id": "move_on", "label": "Move her on", "claim": "C", "legitimacy": -2, "standing": 0.5, "time": 10 },
-        { "id": "walk", "label": "Say nothing", "claim": "-", "legitimacy": 0, "integrity": -1, "time": 0 }
+        {
+          "id": "ask",
+          "label": "Ask who he was",
+          "claim": "-",
+          "legitimacy": 2,
+          "integrity_hint": true,
+          "time": 60
+        },
+        {
+          "id": "move_on",
+          "label": "Move her on",
+          "claim": "C",
+          "legitimacy": -2,
+          "standing": 0.5,
+          "time": 10
+        },
+        {
+          "id": "walk",
+          "label": "Say nothing",
+          "claim": "-",
+          "legitimacy": 0,
+          "integrity": -1,
+          "time": 0
+        }
       ]
+    },
+    {
+      "id": "me-01-notices",
+      "title": "Notices on the wall",
+      "deck": "beat_morning",
+      "pressure": 0.15,
+      "fault_lines": [],
+      "references": [],
+      "requires": {
+        "time_of_day": [
+          "morning"
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0
+      },
+      "beats": [
+        {
+          "text": "The night's notices went up wet. Two of them are already unreadable."
+        },
+        {
+          "text": "A woman reads the ration schedule out loud to a man who cannot see it, then reads it again more slowly."
+        },
+        {
+          "text": "Nobody moves away from her. That is the whole of the demonstration."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "me-01-a",
+          "label": "Write it down as a complaint",
+          "claim": "C",
+          "legitimacy": 1,
+          "standing": 0,
+          "integrity": 0,
+          "time": 0
+        },
+        {
+          "id": "me-01-b",
+          "label": "Let it stand",
+          "claim": "-",
+          "legitimacy": 0,
+          "standing": 0,
+          "integrity": 0,
+          "time": 0
+        }
+      ],
+      "temperature_band": [
+        0,
+        45
+      ]
+    },
+    {
+      "id": "me-02-ration-line",
+      "title": "The ration line",
+      "deck": "beat_morning",
+      "pressure": 0.3,
+      "fault_lines": [
+        "favouritism"
+      ],
+      "references": [
+        "me-01-notices"
+      ],
+      "requires": {
+        "temperature": [
+          20,
+          70
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0.75
+      },
+      "beats": [
+        {
+          "text": "The line at the ration office bends around the corner and does not shorten."
+        },
+        {
+          "text": "A clerk calls a name twice. The second time, he calls a different name."
+        },
+        {
+          "text": "Three people leave the line rather than say anything."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "me-02-a",
+          "label": "Have the line checked against the book",
+          "claim": "C",
+          "legitimacy": 1,
+          "standing": 0,
+          "integrity": 0,
+          "time": 20
+        },
+        {
+          "id": "me-02-b",
+          "label": "Walk the line",
+          "claim": "P",
+          "legitimacy": 0,
+          "standing": 0,
+          "integrity": 0,
+          "time": 15
+        }
+      ],
+      "temperature_band": [
+        20,
+        70
+      ]
+    },
+    {
+      "id": "me-03-press",
+      "title": "Presses at four",
+      "deck": "beat_morning",
+      "pressure": 0.45,
+      "fault_lines": [
+        "paperwork_neglect"
+      ],
+      "references": [
+        "me-07-cell-mark"
+      ],
+      "requires": {
+        "flags_any": [
+          "burned_safehouse"
+        ],
+        "temperature": [
+          30,
+          100
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0.75
+      },
+      "beats": [
+        {
+          "text": "The presses come on at four, two blocks east, in a building that is on the demolition list."
+        },
+        {
+          "text": "You know this because it is the second time this month."
+        },
+        {
+          "text": "By five they have stopped. The warder who reports it does not want his name in a line."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "me-03-a",
+          "label": "Log it and go",
+          "claim": "C",
+          "legitimacy": -1,
+          "standing": 0,
+          "integrity": 0,
+          "time": 0
+        },
+        {
+          "id": "me-03-b",
+          "label": "Go yourself, before the paperwork",
+          "claim": "P",
+          "legitimacy": 1,
+          "standing": -1,
+          "integrity": 0,
+          "time": 0,
+          "effects": {
+            "schedule_epilogue": "epi-01-press-moved"
+          }
+        }
+      ],
+      "temperature_band": [
+        30,
+        100
+      ]
+    },
+    {
+      "id": "me-04-child",
+      "title": "A child with no line",
+      "deck": "beat_evening",
+      "pressure": 0.55,
+      "fault_lines": [
+        "brutality"
+      ],
+      "references": [
+        "me-02-ration-line"
+      ],
+      "requires": {
+        "shift_min": 2,
+        "temperature": [
+          25,
+          100
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0.75
+      },
+      "beats": [
+        {
+          "text": "There is a child in the stairwell of block C who is not in the book."
+        },
+        {
+          "text": "The mother has the papers for two children. There are three."
+        },
+        {
+          "text": "The eldest copies out the ration slips each week so the numbers hold."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "me-04-a",
+          "label": "File it as written",
+          "claim": "C",
+          "legitimacy": -2,
+          "standing": 0,
+          "integrity": 1,
+          "time": 0,
+          "effects": {
+            "set_flag": "filed_unregistered_child"
+          }
+        },
+        {
+          "id": "me-04-b",
+          "label": "Write the third child into the book",
+          "claim": "P",
+          "legitimacy": 2,
+          "standing": 0,
+          "integrity": -2,
+          "time": 0,
+          "effects": {
+            "set_flag": "child_registered"
+          }
+        },
+        {
+          "id": "me-04-c",
+          "label": "Say nothing",
+          "claim": "-",
+          "legitimacy": -1,
+          "standing": 0,
+          "integrity": -1,
+          "time": 0
+        }
+      ],
+      "temperature_band": [
+        25,
+        100
+      ]
+    },
+    {
+      "id": "me-05-witness",
+      "title": "Somebody was seen",
+      "deck": "beat_evening",
+      "pressure": 0.5,
+      "fault_lines": [
+        "over_authorisation"
+      ],
+      "references": [
+        "me-04-child"
+      ],
+      "requires": {
+        "shift_min": 1
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0.75
+      },
+      "beats": [
+        {
+          "text": "The man across the way has been watching your door for six nights."
+        },
+        {
+          "text": "On the seventh he is not there. Somebody has left a line under your door instead."
+        },
+        {
+          "text": "The line names him and names you."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "me-05-a",
+          "label": "Follow the line",
+          "claim": "P",
+          "legitimacy": -1,
+          "standing": 1,
+          "integrity": 0,
+          "time": 0,
+          "effects": {
+            "schedule_epilogue": "epi-02-witness-gone"
+          }
+        },
+        {
+          "id": "me-05-b",
+          "label": "Put the line in the stove",
+          "claim": "-",
+          "legitimacy": 0,
+          "standing": 0,
+          "integrity": -2,
+          "time": 0
+        }
+      ],
+      "temperature_band": [
+        20,
+        100
+      ]
+    },
+    {
+      "id": "me-06-quiet",
+      "title": "Nothing at all",
+      "deck": "beat_night",
+      "pressure": 0.05,
+      "fault_lines": [],
+      "references": [
+        "me-05-witness"
+      ],
+      "requires": {
+        "temperature": [
+          0,
+          40
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0.75
+      },
+      "beats": [
+        {
+          "text": "The street is empty in the way a room is empty after an argument."
+        },
+        {
+          "text": "The windows are all dark and none of them are broken."
+        },
+        {
+          "text": "It is the quiet that makes you check the bolt twice."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "me-06-a",
+          "label": "Sleep",
+          "claim": "-",
+          "legitimacy": 0,
+          "standing": 1,
+          "integrity": 0,
+          "time": 0
+        },
+        {
+          "id": "me-06-b",
+          "label": "Walk the block",
+          "claim": "P",
+          "legitimacy": 0,
+          "standing": 0,
+          "integrity": 0,
+          "time": 30
+        }
+      ],
+      "temperature_band": [
+        0,
+        40
+      ]
+    },
+    {
+      "id": "me-07-cell-mark",
+      "title": "A mark on the wall",
+      "deck": "beat_night",
+      "pressure": 0.75,
+      "fault_lines": [
+        "brutality"
+      ],
+      "references": [],
+      "requires": {
+        "shift_min": 2,
+        "flags_none": [
+          "cell_mark_logged"
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0
+      },
+      "beats": [
+        {
+          "text": "In the morning there will be a mark on the wall by the canal, chalk and half washed off."
+        },
+        {
+          "text": "Tonight it is fresh. It is a count, and the count is short by one."
+        },
+        {
+          "text": "The Cell counts its own out loud. That is how they let you know."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "me-07-a",
+          "label": "Log the mark",
+          "claim": "C",
+          "legitimacy": 1,
+          "standing": 0,
+          "integrity": 0,
+          "time": 0,
+          "effects": {
+            "set_flag": "cell_mark_logged"
+          }
+        },
+        {
+          "id": "me-07-b",
+          "label": "Send a squad to the canal",
+          "claim": "P",
+          "legitimacy": -2,
+          "standing": 2,
+          "integrity": 0,
+          "time": 0,
+          "effects": {
+            "set_flag": "canal_swept"
+          }
+        }
+      ],
+      "temperature_band": [
+        35,
+        100
+      ]
+    },
+    {
+      "id": "me-08-hospital",
+      "title": "The sick ward",
+      "deck": "beat_night",
+      "pressure": 0.6,
+      "fault_lines": [
+        "curfew_tolerance",
+        "favouritism"
+      ],
+      "references": [
+        "me-04-child"
+      ],
+      "requires": {
+        "shift_min": 3,
+        "temperature": [
+          30,
+          100
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0.75
+      },
+      "beats": [
+        {
+          "text": "The ward has four beds and eleven people and one lamp."
+        },
+        {
+          "text": "The congregation has been keeping the worst of them off the registry, which is both mercy and a file."
+        },
+        {
+          "text": "The sister in charge will tell you which ones if you ask her politely."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "me-08-a",
+          "label": "Ask her politely",
+          "claim": "P",
+          "legitimacy": 1,
+          "standing": 0,
+          "integrity": 1,
+          "time": 0,
+          "effects": {
+            "set_flag": "ward_confided"
+          }
+        },
+        {
+          "id": "me-08-b",
+          "label": "Clear the ward by the book",
+          "claim": "P",
+          "legitimacy": -3,
+          "standing": 1,
+          "integrity": 0,
+          "time": 0,
+          "effects": {
+            "set_flag": "ward_cleared"
+          }
+        }
+      ],
+      "temperature_band": [
+        30,
+        100
+      ]
+    },
+    {
+      "id": "epi-01-press-moved",
+      "title": "The presses move",
+      "deck": "beat_epilogue",
+      "pressure": 0.4,
+      "fault_lines": [
+        "paperwork_neglect"
+      ],
+      "references": [
+        "me-03-press"
+      ],
+      "requires": {
+        "shift_since_cause": [
+          2,
+          4
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0.5
+      },
+      "beats": [
+        {
+          "text": "The presses from block east have moved twice now, and this time the building is one you walk past."
+        },
+        {
+          "text": "You went to them on a night when the paperwork would have been easier."
+        },
+        {
+          "text": "Somebody has written the address on the back of a ration slip and left it where you would find it."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "epi-01-a",
+          "label": "Go again",
+          "claim": "P",
+          "legitimacy": 0,
+          "standing": 1,
+          "integrity": 0,
+          "time": 30
+        },
+        {
+          "id": "epi-01-b",
+          "label": "File the address and wait",
+          "claim": "C",
+          "legitimacy": 0,
+          "standing": 0,
+          "integrity": 1,
+          "time": 0
+        }
+      ],
+      "temperature_band": [
+        30,
+        100
+      ],
+      "_type": "epilogue_storylet"
+    },
+    {
+      "id": "epi-02-witness-gone",
+      "title": "The witness is gone",
+      "deck": "beat_epilogue",
+      "pressure": 0.6,
+      "fault_lines": [
+        "over_authorisation"
+      ],
+      "references": [
+        "me-05-witness"
+      ],
+      "requires": {
+        "shift_since_cause": [
+          3,
+          6
+        ]
+      },
+      "weight": {
+        "base": 1,
+        "connective_bonus": 0.5
+      },
+      "beats": [
+        {
+          "text": "The man who watched your door has been taken up by a squad you sent."
+        },
+        {
+          "text": "He has not been charged with the thing the line accused him of. He has been charged with something easier."
+        },
+        {
+          "text": "On the seventh night the light across the way is on again, and it is somebody else's."
+        }
+      ],
+      "resolutions": [
+        {
+          "id": "epi-02-a",
+          "label": "Release him",
+          "claim": "P",
+          "legitimacy": 2,
+          "standing": -1,
+          "integrity": 0,
+          "time": 0
+        },
+        {
+          "id": "epi-02-b",
+          "label": "Let the charge hold",
+          "claim": "C",
+          "legitimacy": -2,
+          "standing": 1,
+          "integrity": 0,
+          "time": 0
+        }
+      ],
+      "temperature_band": [
+        30,
+        100
+      ],
+      "_type": "epilogue_storylet"
     }
   ],
-
   "report_tags": [
-    "suspicious_conduct", "resisting", "armed", "crowd", "contraband",
-    "unlicensed_radio", "curfew_violation", "syndicate", "cell", "informant",
-    "property_vandalism", "insufficient_papers", "bribe_offered"
+    "suspicious_conduct",
+    "resisting",
+    "armed",
+    "crowd",
+    "contraband",
+    "unlicensed_radio",
+    "curfew_violation",
+    "syndicate",
+    "cell",
+    "informant",
+    "property_vandalism",
+    "insufficient_papers",
+    "bribe_offered"
   ]
 }
