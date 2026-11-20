@@ -26,6 +26,7 @@
 | P3-T03/T10/T12 | Composition + the Inspector | `src/systems/showrunner.ts`, `src/ui/inspector.ts` | `tests/showrunner.test.ts` (21), `tests/ui-inspector.test.ts` (13) |
 | P3-T03 tail | The street speaks its grade | `src/systems/mood.ts`, `Barks.forGrade`, `barks.json#by_grade` | `tests/mood.test.ts` (13) |
 | P3-T02 (wire) | The street **is** the district: stable homes, learned by inspection, filed lines make people Known | `src/systems/citizen-homes.ts`, `Simulation.homeOf/knownCandidate`, desk `THE HOUSEHOLD` panel | `tests/citizen-homes.test.ts` (20), `tests/ui-desk-home.test.ts` (4) |
+| P3-T01 (reaction) | The district reacts to filings, and hardens | `src/systems/household-reaction.ts`, wired in `main.ts` | `tests/household-reaction.test.ts` (19) |
 | P3-T02 (UI) | The Registry screen | `src/ui/registry.ts`, persisted Known set in `main.ts` | `tests/ui-registry.test.ts` (14) |
 | P3-T11 | Contradicting standing orders, enforced | `src/systems/directive-conflicts.ts`, audit `directive` findings, desk warning, `main.ts` order rotation | `tests/directive-conflicts.test.ts` (21), `tests/orders.test.ts` (7), 2 in `tests/ui-desk.test.ts` |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
@@ -103,6 +104,29 @@ household enters the Known set → the Registry shows a new face → the *same r
 be materialised as the person in the flat next Monday. That is the continuity the design
 claims, and it is now true of the same data rather than of a sentence in a document.
 
+## 2c. The district reacts, and it does not forgive quickly
+
+§2a bound the street to the district so the player could learn where people live. This is
+the other direction, which is where "the city remembers" stops being a claim.
+`src/systems/household-reaction.ts`:
+
+- **Only claims count.** A household reacts to what was *filed*, never to what happened.
+  That is not a limitation, it is the thesis: the city is what the paperwork says it is. A
+  brutality nobody wrote down did not, officially, occur.
+- **Neighbours feel a third of it.** Punishment that only touches one door is a queue, not
+  a district. Same block, `NEIGHBOUR_SHARE` of the delta.
+- **It does not wash off.** A detention is +0.22 grievance, a clear is −0.06. Punishment
+  outlasts kindness by a factor of nearly four, which is why the place degrades under
+  pressure instead of merely oscillating.
+- **Order-independent.** The delta is the sum over acts, so filing the same three lines in
+  a different order cannot produce a different city — a property the tests assert directly.
+
+It then feeds `legitimacy()` and `temperature()`, so a bad night is visible in the street's
+grade and its barks, not just in a number nobody sees. And grievance *hardens*: at 0.7 a
+household becomes `available`, which is exactly what the Cell's recruitment step looks for.
+The loop is now: you file → the district hardens → the Cell recruits from it → the Cell
+strikes → you respond. That is the ratchet the whole sim exists to produce.
+
 ## 2b. Standing orders are now a rule, not a comment
 
 The contradiction graph was detected and warned about since Phase 0 and **enforced by
@@ -154,11 +178,11 @@ says so."
 - **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
   (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
   system and it needs the shift's tally, which currently lives in `main.ts`.
-- **Citizens do not yet *react* to their household.** The binding is one-directional: the
-  street teaches the district to the player, but a household in a `condemned` block does not
-  change a citizen's dread, and arresting a citizen does not raise their household's
-  grievance. That second direction is where "the city remembers" actually lives, and it is
-  the next thing to build.
+- **Citizens still do not *show* their household's mood.** Grievance now flows back into the
+  district (§2c), but the six individuals on the street do not visibly change: a frightened
+  citizen from an `available` household still looks exactly like a frightened citizen from a
+  quiet one. Their dread should read from their household's grievance, and it does not yet.
+  That is the last seam between the two layers.
 - **The Registry screen is the only campaign surface in the browser.** `R` (or `?registry`)
   opens it: twelve faces with the household line and why each is known, the rest of the
   sector as anonymous records, and a column of people who have gone out of your head.
@@ -194,10 +218,10 @@ likely to break and what to look at:
 ## 5. Verified
 
 ```
-npm run verify                572 passed / 43 files
+npm run verify                591 passed / 44 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
-node scripts/check-boundaries ✓ 50 source files, 5 rules
+node scripts/check-boundaries ✓ 51 source files, 5 rules
 npx tsx scripts/validate-content.ts  ✓ 1 bundle, 0 warnings
 ```
 

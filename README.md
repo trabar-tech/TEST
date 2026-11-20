@@ -46,7 +46,7 @@ npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
                    # E opens the desk early, C opens the case file, F enters the flat,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 572 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 591 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
@@ -59,7 +59,9 @@ ambient lines change with it, so the street tells you what kind of day it is.
 The six people on the street are six of the district's sixty households: inspecting someone
 tells you where they live, the desk shows it beside the evidence, and filing a line naming
 them puts that household in your Registry. The person you arrest on Tuesday is the person
-from Monday's flat, because they are the same record.
+from Monday's flat, because they are the same record — and the district reacts to what you
+file: arrests raise a household's grievance, the neighbours feel a third of it, and what you
+do outlasts what you say.
 
 Each shift the Directorate issues three standing orders, and some of them contradict each
 other: obeying both is charged on the audit sheet, and the desk's exposure gutter warns you

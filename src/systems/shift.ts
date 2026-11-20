@@ -207,7 +207,7 @@ export class Simulation {
   /** Standing orders for the shift; empty means the contradiction test does not fire */
   readonly liveDirectives: readonly Directive[];
   /** The district, when the street is bound to it; null in the pure Phase 1 slice */
-  readonly sector: SectorState | null;
+  sector: SectorState | null;
   /** citizen id → the household they live in, resolved on first need */
   private readonly homes = new Map<string, CitizenHome | null>();
 
@@ -668,6 +668,16 @@ export class Simulation {
    * Tonight's orders. The Directorate issues them at the start of a shift, so they
    * are set from outside rather than re-read from content on every change.
    */
+  /**
+   * Replace the district. Called when the player's filings have changed it, so the
+   * street and the Registry read the same households rather than snapshots of each
+   * other.
+   */
+  setSector(sector: SectorState): void {
+    this.sector = sector;
+    this.homes.clear();
+  }
+
   setDirectives(directives: readonly Directive[]): void {
     (this as { liveDirectives: readonly Directive[] }).liveDirectives = directives;
   }

@@ -34,6 +34,7 @@ import { createCaseFile } from '@ui/case-file';
 import { Barks, type BarkSet } from '@systems/barks';
 import { streetGrade } from '@systems/mood';
 import { KnownSet, generateSector } from '@systems/households';
+import { harden, reactToFilings } from '@systems/household-reaction';
 import { createRegistry, meetHousehold } from '@ui/registry';
 import { Incident } from '@systems/tactical/incident';
 import { createIncidentView } from '@ui/incident-view';
@@ -113,7 +114,7 @@ async function start(): Promise<void> {
    * sim, so the citizen you inspect and the household in the Registry are the same
    * record rather than two lists that happen to be on the same screen.
    */
-  const sectorState = generateSector({ seed });
+  let sectorState = generateSector({ seed });
 
   const sim = new Simulation({
     seed,
@@ -621,6 +622,33 @@ async function start(): Promise<void> {
    * head — not walking past them, and not opening the Registry. This is the loop the
    * design claims: paperwork is how the city learns to know you.
    */
+  /**
+   * The other direction (SYS-SIM-01 §3): what was *filed* changes the district.
+   *
+   * Only claims count. A brutality nobody wrote down did not, officially, occur — and
+   * when a filing does describe one, the district reacts to the paperwork, which is
+   * the whole thesis of the game in one call.
+   */
+  function reactToTheDistrict(): string | null {
+    const filed = sim.record.query({ shift: sim.state.shift });
+    const acts = filed
+      .map((line) => {
+        const event = sim.docket.find((e) => e.ref === line.event_ref);
+        const household = event?.edge?.household_id;
+        return household ? { household_id: household, classification: line.claim.classification, force_rung: line.claim.force_rung } : null;
+      })
+      .filter((a): a is NonNullable<typeof a> => a !== null);
+    if (acts.length === 0) return null;
+
+    const before = sectorState;
+    const reaction = reactToFilings({ sector: { ...before, shift: sim.state.shift }, acts });
+    // the district hardens: grievance becomes availability, which the Cell recruits from
+    sectorState = { ...reaction.sector, households: reaction.sector.households.map((h) => harden(h).household) };
+    sim.setSector(sectorState);
+    registry?.refresh();
+    return reaction.summary;
+  }
+
   function learnFromFilings(): void {
     const known = loadKnown();
     let changed = false;
@@ -645,7 +673,9 @@ async function start(): Promise<void> {
 
   function submitDocket(): void {
     learnFromFilings();
+    const district = reactToTheDistrict();
     const result = sim.submit();
+    if (district) hud.radio(district, 'speaker');
     desk?.destroy();
     desk = null;
     debrief = createDebrief(sim, host, { onRestart: beginNextShift });
