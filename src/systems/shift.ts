@@ -596,7 +596,21 @@ export class Simulation {
    *
    * The draft is the honest one. Lying is an edit, which is the whole design.
    */
-  addIncident(result: IncidentResult, opts: { ref: string; address: string; cameras?: string[]; witnesses?: ReportLine['witnesses'] }): DocketEvent {
+  addIncident(
+    result: IncidentResult,
+    opts: {
+      ref: string;
+      address: string;
+      cameras?: string[];
+      witnesses?: ReportLine['witnesses'];
+      /**
+       * The household the incident happened *at* (P3-T02). This is the hop that makes
+       * recurrence mean something: the person in the briefing is behind the door you
+       * just came through, and the desk can therefore charge the district for it.
+       */
+      householdId?: string;
+    },
+  ): DocketEvent {
     const truth = truthFromIncident(result);
     const scene: DocketScene = cardScene(result);
     const event: DocketEvent = {
@@ -612,6 +626,7 @@ export class Simulation {
       tags_hint: incidentTags(result),
       scene,
     };
+    this.attachHousehold(event, opts.householdId);
     this.docket.push(event);
     this.bus.emit('incident:docketed', {
       event_ref: event.ref,
@@ -639,6 +654,7 @@ export class Simulation {
       tags_hint: docket.tags_hint,
       scene: docket.scene,
     };
+    this.attachHousehold(event, docket.householdId);
     this.docket.push(event);
     // telemetry only, and from the *draft*: a systems file must not read `truth`
     // even to decorate an event (SYS-REC-01 §5.3, boundary rule 5)
@@ -648,6 +664,31 @@ export class Simulation {
       docket: this.docket.length,
     });
     return event;
+  }
+
+  /**
+   * Bind a docket event to a household, in the same shape an inspection uses.
+   *
+   * Shared by both incident paths so the desk, the audit and the district reaction all
+   * read one field. It is a *record the Warden can look up*, not a hidden fact: the
+   * address on the card is the household's address.
+   */
+  private attachHousehold(event: DocketEvent, householdId: string | undefined): void {
+    if (!householdId || !this.sector) return;
+    const household = this.sector.households.find((h) => h.id === householdId);
+    if (!household) return;
+    const home: CitizenHome = {
+      citizen_id: '',
+      household_id: household.id,
+      household,
+      discrepancy: null,
+    };
+    event.edge = {
+      household_id: household.id,
+      line: describeHome(home),
+      discrepancy: null,
+    };
+    event.title = `${event.title} — ${household.block.replace(/_/g, ' ')}`;
   }
 
   /** What the last incident produced, for the debrief and the case file. */

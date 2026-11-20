@@ -7,7 +7,13 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { chooseRecurrence, lineFor, rankRecurrence } from '@systems/recurrence';
+import {
+  chooseRecurrence,
+  hostForIncident,
+  lineFor,
+  raidAddress,
+  rankRecurrence,
+} from '@systems/recurrence';
 import { generateSector, type SectorState } from '@systems/households';
 
 const sector = (over: Partial<SectorState> = {}): SectorState => ({
@@ -150,5 +156,50 @@ describe('a line is a story, not a status', () => {
     for (const household of real.households) {
       expect(lineFor(household).length).toBeGreaterThan(15);
     }
+  });
+});
+
+describe('the raid goes to the household in the news', () => {
+  const opts2 = (over: Record<string, unknown> = {}) => ({
+    sector: sector(),
+    known: [],
+    shift: 3,
+    seed: 2026,
+    ...over,
+  });
+
+  it('hosts the incident at the same household the briefing named', () => {
+    const known = [{ household_id: 'h-002', reason: 'filed' }];
+    const named = chooseRecurrence(opts2({ known }))!;
+    const host = hostForIncident(opts2({ known }))!;
+    expect(host.id).toBe(named.household_id);
+  });
+
+  it('always hosts at a Known household when there is one', () => {
+    const known = [{ household_id: 'h-003', reason: 'filed' }];
+    for (let shift = 1; shift <= 20; shift++) {
+      expect(hostForIncident(opts2({ known, shift }))!.id).toBe('h-003');
+    }
+  });
+
+  it('returns nothing for an empty district, so the caller keeps the authored address', () => {
+    expect(hostForIncident(opts2({ sector: sector({ households: [] }) }))).toBeNull();
+  });
+
+  it('puts the household in the address a Warden reads out', () => {
+    const host = hostForIncident(opts2({ known: [{ household_id: 'h-001', reason: 'r' }] }))!;
+    const address = raidAddress('Block C, flat fourteen', host);
+    expect(address).toContain('Block C, flat fourteen');
+    expect(address).toContain('tenement row');
+    expect(address).toContain('h-001');
+  });
+
+  it('leaves the authored address untouched when the district has nobody', () => {
+    expect(raidAddress('Block C, flat fourteen', null)).toBe('Block C, flat fourteen');
+  });
+
+  it('never puts an underscore in an address a person would say out loud', () => {
+    const host = hostForIncident(opts2({ known: [{ household_id: 'h-003', reason: 'r' }] }))!;
+    expect(raidAddress('Flat 14', host)).not.toMatch(/_/);
   });
 });

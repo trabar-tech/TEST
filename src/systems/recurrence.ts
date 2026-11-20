@@ -153,3 +153,32 @@ export function lineFor(household: Household): string {
   }
   return `Nothing from ${where}, which the Warden has learned to hear as something.`;
 }
+
+/* ------------------------------------------------------------- the host */
+
+/**
+ * The household whose door the incident is behind.
+ *
+ * This is the hop that makes recurrence worth building: `chooseRecurrence()` says who
+ * is in the news, and this says *where the raid goes*. They are separate questions —
+ * the news is what the Warden hears, the raid is where they end up — and separating
+ * them is what stops the game feeling like it is reading out its own dice.
+ *
+ * Returns null when the district has nobody available, so the caller falls back to the
+ * authored address rather than inventing a household.
+ */
+export function hostForIncident(opts: RecurrenceOptions): Household | null {
+  const choice = chooseRecurrence(opts);
+  if (!choice) return null;
+  return opts.sector.households.find((h) => h.id === choice.household_id) ?? null;
+}
+
+/**
+ * The address a Warden would actually read out. The authored label plus the district's
+ * own description, so "Block C, flat fourteen" becomes a place with a household in it
+ * rather than a placename from a map file.
+ */
+export function raidAddress(base: string, household: Household | null): string {
+  if (!household) return base;
+  return `${base} · ${household.block.replace(/_/g, ' ')} ${household.id}`;
+}

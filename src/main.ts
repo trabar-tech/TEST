@@ -35,7 +35,12 @@ import { Barks, type BarkSet } from '@systems/barks';
 import { streetGrade } from '@systems/mood';
 import { KnownSet, generateSector } from '@systems/households';
 import { harden, reactToFilings } from '@systems/household-reaction';
-import { chooseRecurrence, type Recurrence } from '@systems/recurrence';
+import {
+  chooseRecurrence,
+  hostForIncident,
+  raidAddress,
+  type Recurrence,
+} from '@systems/recurrence';
 import { createRegistry, meetHousehold } from '@ui/registry';
 import { Incident } from '@systems/tactical/incident';
 import { createIncidentView } from '@ui/incident-view';
@@ -261,6 +266,9 @@ async function start(): Promise<void> {
     });
   }
 
+  /** the household this shift's raid is at, so the docket can be charged for it */
+  let currentHost: string | null = null;
+
   let playlist: ReturnType<typeof createPlaylist> | null = null;
 
   /**
@@ -371,7 +379,19 @@ async function start(): Promise<void> {
       return;
     }
 
-    const address = flat14?.address ?? 'Block C, flat fourteen';
+    // the raid goes to the household in the news (P3-T02): the briefing says who has
+    // been asking about patrols, and this is the door that answer leads to
+    // NB: not `host` — that name is the app's DOM mount point, and shadowing it here
+    // was a real bug for about ninety seconds
+    const raided = hostForIncident({
+      sector: { ...sectorState, shift: sim.state.shift },
+      known: loadKnown().all(),
+      grudges: sim.grudges,
+      shift: sim.state.shift,
+      seed,
+    });
+    const address = raidAddress(flat14?.address ?? 'Block C, flat fourteen', raided);
+    currentHost = raided?.id ?? null;
     incident = new Incident({
       seed,
       shift: sim.state.shift,
@@ -578,6 +598,8 @@ async function start(): Promise<void> {
       address,
       cameras: interior.cameras?.map((c) => c.id) ?? [],
       witnesses: [],
+      // whose door it was — the desk shows it, and the district is charged for it
+      householdId: currentHost ?? undefined,
     });
 
     // the ratchet: this scene changes what the sector is like next shift

@@ -38,6 +38,12 @@ export interface IncidentDocket {
   tags_hint: string[];
   /** the incident's own facts, kept for the desk's "what the scene produced" panel */
   scene: DocketSceneForCard;
+  /**
+   * The household this happened at, when the scene was bound to the district (P3-T02).
+   * Carried through so the desk can show whose door it was and the district can be
+   * charged for it.
+   */
+  householdId?: string;
 }
 
 /** The smaller, desk-facing shape the docket card carries (see `shift.ts`). */

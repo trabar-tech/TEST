@@ -262,3 +262,89 @@ describe('a citizen carries their household\'s mood', () => {
     );
   });
 });
+
+/** A quiet, honest raid: the smallest IncidentResult the docket path accepts. */
+const quietRaid = {
+  roomClaims: [{ room: 'north', claimedClear: true, actuallyClear: true }],
+  forceUsed: [],
+  damage: 0,
+  detainees: 0,
+  casualties: 0,
+  noiseEvents: 2,
+  loudestNoise: 1,
+  heardByNeighbours: 0,
+  wallsBreached: 0,
+  entryMethod: 'knock_talk' as const,
+  unauthorisedForce: false,
+  stabilised: [],
+  unfound: [],
+  soloHits: 0,
+  ticksElapsed: 40,
+};
+
+describe('an incident is charged to the household it happened at', () => {
+  const simWithSector = () => {
+    const s = new Simulation({
+      seed: 2026,
+      shift: 1,
+      map: new TileMap(mapJsonToDef(mapJson)),
+      mapJson,
+      citizens: citizensJson,
+      sector: sector(),
+    });
+    s.beginBeat();
+    return s;
+  };
+
+  it('attaches the household edge to the docket card, and says so in the title', () => {
+    const s = simWithSector();
+    const event = s.addIncident(
+      quietRaid as never,
+      { ref: 'int-1', address: 'Flat 14', householdId: 'h-007' },
+    );
+    expect(event.edge?.household_id).toBe('h-007');
+    // the title carries the *place*, not the record id: a Warden reads out a block,
+    // not a filing reference
+    expect(event.title).toMatch(/Flat 14/);
+    expect(event.title).toMatch(/kiln row block a/);
+    expect(event.title).not.toMatch(/h-\d{3}/);
+  });
+
+  it('leaves the incident alone when no household is given', () => {
+    const s = simWithSector();
+    const event = s.addIncident(
+      quietRaid as never,
+      { ref: 'int-2', address: 'Flat 14' },
+    );
+    expect(event.edge).toBeUndefined();
+    expect(event.title).toBe('Flat 14');
+  });
+
+  it('ignores a household id that is not in the district, rather than half-attaching', () => {
+    const s = simWithSector();
+    const event = s.addIncident(
+      quietRaid as never,
+      { ref: 'int-3', address: 'Flat 14', householdId: 'h-999' },
+    );
+    expect(event.edge).toBeUndefined();
+  });
+
+  it('the crowd path accepts a household too, so both routes into the desk agree', () => {
+    const s = simWithSector();
+    const event = s.addCrowd({
+      ref: 'crowd-1',
+      kind: 'incident',
+      title: 'Canal market',
+      note: 'two hundred at the corner',
+      truth: { classification: 'NR', force_rung: 2, detainees: 0, casualties: 0, damage: 0, property: [], third_party_present: true, illegal_search: false, bribe_taken: false },
+      cameras: [],
+      witnesses: [],
+      quota: 1,
+      draft: { classification: 'NR', force_rung: 2, detainees: 0, casualties: 0, damage: 0 },
+      tags_hint: [],
+      scene: {} as never,
+      householdId: 'h-004',
+    } as never);
+    expect(event.edge?.household_id).toBe('h-004');
+  });
+});

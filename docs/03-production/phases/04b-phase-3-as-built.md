@@ -25,10 +25,10 @@
 | P3-T08 | Cell HTN-lite plans + grudges | `src/systems/plans.ts` | same |
 | P3-T03/T10/T12 | Composition + the Inspector | `src/systems/showrunner.ts`, `src/ui/inspector.ts` | `tests/showrunner.test.ts` (21), `tests/ui-inspector.test.ts` (13) |
 | P3-T03 tail | The street speaks its grade | `src/systems/mood.ts`, `Barks.forGrade`, `barks.json#by_grade` | `tests/mood.test.ts` (13) |
-| P3-T02 (wire) | The street **is** the district: stable homes, learned by inspection, filed lines make people Known | `src/systems/citizen-homes.ts`, `Simulation.homeOf/knownCandidate`, desk `THE HOUSEHOLD` panel | `tests/citizen-homes.test.ts` (20), `tests/ui-desk-home.test.ts` (4) |
+| P3-T02 (wire) | The street **is** the district: stable homes, learned by inspection, filed lines make people Known, and incidents carry a `householdId` | `src/systems/citizen-homes.ts`, `Simulation.homeOf/knownCandidate/attachHousehold`, desk `THE HOUSEHOLD` panel | `tests/citizen-homes.test.ts` (29), `tests/ui-desk-home.test.ts` (4) |
 | P3-T01 (reaction) | The district reacts to filings, and hardens | `src/systems/household-reaction.ts`, wired in `main.ts` | `tests/household-reaction.test.ts` (19) |
 | P3-T01 (mood) | Citizens carry their household's mood | `Citizens.effectiveDread`, `Simulation.setSector` | `tests/citizen-homes.test.ts` (+5) |
-| P3-T02 (recur) | Known faces return every shift, with a reason | `src/systems/recurrence.ts`, briefing in `main.ts` | `tests/recurrence.test.ts` (15) |
+| P3-T02 (recur) | Known faces return every shift, with a reason, and **host the raid** | `src/systems/recurrence.ts`, briefing + incident host in `main.ts` | `tests/recurrence.test.ts` (21) |
 | P3-T02 (UI) | The Registry screen | `src/ui/registry.ts`, persisted Known set in `main.ts` | `tests/ui-registry.test.ts` (14) |
 | P3-T11 | Contradicting standing orders, enforced | `src/systems/directive-conflicts.ts`, audit `directive` findings, desk warning, `main.ts` order rotation | `tests/directive-conflicts.test.ts` (21), `tests/orders.test.ts` (7), 2 in `tests/ui-desk.test.ts` |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
@@ -167,6 +167,31 @@ answer to "why her?" has to be inspectable. And `lineFor()` never returns a stat
 household is a fact, a line is a story, and only the second one is worth reading on a briefing
 screen.
 
+## 2f. The raid goes to the household in the news
+
+§2e made a Known face *appear*, in a line on the briefing. It still did not make them
+*somewhere*: the flat raid went to a fixed authored address from a map file, so the person
+the briefing named and the door the Warden came through were unrelated. Recurrence was
+correct and decorative.
+
+`hostForIncident()` closes it. The incident is now hosted at the household the briefing
+named, the address reads `Block C, flat fourteen · tenement row h-001`, and the docket
+card carries a `householdId` — which means **a raid is charged to the district reaction
+exactly like an inspection is.** Force used on a household the Cell recruited from, on a
+household the Warden can name, now raises that household's grievance and its neighbours',
+which raises the temperature, which changes the barks. The loop is closed at the level of
+the actual scene rather than only at the level of the paperwork.
+
+The host and the news are deliberately *separate* functions (`chooseRecurrence` vs
+`hostForIncident`) even though one currently calls the other: what the Warden *hears* and
+where they *end up* are different questions, and keeping them separate is what stops the
+game feeling like it is reading out its own dice.
+
+A local variable was named `host` for about ninety seconds and shadowed the app's DOM mount
+point. Same class of bug as the `nextShift` collision in Phase 2b; renamed to `raided`, with
+the incident recorded in the commit message because the next person to write
+`const host =` in `main.ts` deserves the warning.
+
 ## 2b. Standing orders are now a rule, not a comment
 
 The contradiction graph was detected and warned about since Phase 0 and **enforced by
@@ -218,11 +243,10 @@ says so."
 - **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
   (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
   system and it needs the shift's tally, which currently lives in `main.ts`.
-- **Recurrence produces a *line*, not an incident.** `recurrence.ts` guarantees a Known face
-  returns every shift and says why, but the returning household does not yet *host* anything —
-  the incident deck still picks its own site. That last hop is content (incident cards bound to
-  a household) rather than machinery, which is why it is not done: it needs the 60-storylet
-  authoring pass to be worth doing.
+- **Only one site can be hosted.** The flat is bound to a household (§2f), but the canal-market
+  crowd is still an authored anchor and only accepts a household id nobody supplies. The
+  generic version — an incident *deck* whose cards carry a `host` requirement — needs the
+  60-storylet pass to be worth building.
 - **The Registry screen is the only campaign surface in the browser.** `R` (or `?registry`)
   opens it: twelve faces with the household line and why each is known, the rest of the
   sector as anonymous records, and a column of people who have gone out of your head.
@@ -250,16 +274,16 @@ likely to break and what to look at:
    the person arrested on Tuesday is provably the person from Monday's flat, the Known set is
    capped at 12, and the Registry screen is where a tester can actually look at the names.
    Every leg of this is now built: the six people on the street are six of the sixty, filings
-   change the district, citizens wear their household's mood, and a Known face is
-   **guaranteed to return every shift** with a printed reason (§2e). If testers still cannot
-   name three citizens, the problem is no longer machinery — it is that recurrence produces a
-   line rather than an incident, and the remaining lever is the content volume (60 storylets,
-   incident cards bound to households).
+   change the district, citizens wear their household's mood, a Known face is **guaranteed to
+   return every shift** with a printed reason (§2e), and **the raid happens at their door**
+   (§2f) — so the person in the briefing is the person behind the door you came through, and
+   the district is charged for it. If testers still cannot name three citizens at this point,
+   the machinery is not the problem and the answer is content volume, not more systems.
 
 ## 5. Verified
 
 ```
-npm run verify                611 passed / 45 files
+npm run verify                621 passed / 45 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
 node scripts/check-boundaries ✓ 52 source files, 5 rules
