@@ -18,7 +18,20 @@ export interface BarkSet {
   radio: string[];
   ambient: string[];
   witness: string[];
+  /**
+   * Lines keyed by the district's temperature grade (P3-T03).
+   *
+   * This is the whole of the temperature system's *player-facing* payload: the
+   * number is never shown, it is heard. A district at `braced` should not be
+   * saying the same things as one at `calm`, or the grade is decoration.
+   *
+   * Optional so a bark file without graded lines still loads — it just keeps
+   * reading like a district with one mood, which is a content gap, not a crash.
+   */
+  by_grade?: Partial<Record<'calm' | 'wary' | 'braced' | 'hostile', string[]>>;
 }
+
+export type Grade = 'calm' | 'wary' | 'braced' | 'hostile';
 
 export const DEFAULT_BARK_INTERVAL = 26; // seconds
 
@@ -56,6 +69,18 @@ export class Barks {
   /** A line for the radio, at the start of the shift or after an audit. */
   radio(): string {
     return this.pickUnused(this.set.radio) ?? this.set.radio[0] ?? '';
+  }
+
+  /**
+   * The street's mood, spoken. Falls back to the plain ambient pool when the
+   * bark file has nothing written for this grade, and *remembers* what it has
+   * said, so a district at `braced` does not repeat itself into wallpaper.
+   */
+  forGrade(grade: Grade): string | null {
+    const graded = this.set.by_grade?.[grade] ?? [];
+    const text = this.pickUnused(graded) ?? this.pickUnused(this.set.ambient);
+    if (!text) return null;
+    return text;
   }
 
   /** What a witness says when they are brought in. */

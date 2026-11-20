@@ -32,6 +32,7 @@ import { createDesk } from '@ui/desk';
 import { createDebrief } from '@ui/debrief';
 import { createCaseFile } from '@ui/case-file';
 import { Barks, type BarkSet } from '@systems/barks';
+import { streetGrade } from '@systems/mood';
 import { Incident } from '@systems/tactical/incident';
 import { createIncidentView } from '@ui/incident-view';
 import { createPlaylist } from '@ui/playlist';
@@ -702,11 +703,13 @@ async function start(): Promise<void> {
 
     if (sim.phase === 'desk' && !desk) openDesk();
 
-    // ambience: a loudspeaker line or a stage direction, never both at once
+    // ambience: a loudspeaker line or a stage direction, never both at once.
+    // Every other slot is the district's *mood* rather than its wallpaper — the
+    // temperature is never shown as a number, so this is where the player reads it.
     const bark = barks.next(sim.clock.simSeconds);
     if (bark && sim.phase === 'beat') {
       if (bark.kind === 'loudspeaker') hud.radio(bark.text, 'speaker');
-      else hud.ambient(bark.text);
+      else hud.ambient(barks.forGrade(streetGrade(sim.state)) ?? bark.text);
     }
 
     if (crowdRingCanvas || sim.phase === 'beat') paintCrowdRing();

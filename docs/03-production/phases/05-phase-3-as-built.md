@@ -24,6 +24,7 @@
 | P3-T07 | Oversight Attention + Eye ladder | `src/systems/directors.ts` (`notice`, `eyeTick`) | same |
 | P3-T08 | Cell HTN-lite plans + grudges | `src/systems/plans.ts` | same |
 | P3-T03/T10/T12 | Composition + the Inspector | `src/systems/showrunner.ts`, `src/ui/inspector.ts` | `tests/showrunner.test.ts` (21), `tests/ui-inspector.test.ts` (13) |
+| P3-T03 tail | The street speaks its grade | `src/systems/mood.ts`, `Barks.forGrade`, `barks.json#by_grade` | `tests/mood.test.ts` (13) |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
 
 **The spine went first, on purpose.** The phase doc says every director is a deck, so the
@@ -70,10 +71,14 @@ evacuated district is not half-hostile.
 
 ## 3. What is deliberately not built
 
-- **Barks from temperature (P3-T03 tail).** `grade()` exists and is tested; the grade is not
-  yet wired into the bark selector, so the district's mood is currently visible in the
-  Inspector and the sector HUD but not in ambient speech. This is the cheapest remaining win
-  and the first thing to do next.
+- **Campaign temperature in the bark selector (P3-T03 tail, partially closed).** The *street*
+  now speaks its grade: `src/systems/mood.ts` reads the saved sector memory, and every other
+  ambient line is a graded bark (`barks.forGrade()`, four voices per grade in
+  `content/examples/barks.json`). What is **not** wired is the campaign formula from
+  `households.ts` — the street reads force and shifts out of `GameState.flags`, because the
+  campaign layer does not run in the browser yet (see below). When the showrunner goes live,
+  `streetGrade()` should take its number from `temperature(sector)` instead of the ratchet.
+  The vocabulary is already shared, so this is a one-line change of source, not of shape.
 - **Content volume.** 12 storylets vs. the 60 the card asks for; 22 directives vs. 80. The
   cut line explicitly permits this and prefers it: *micro-events 60→30* before households go
   to 40. What exists is a *representative slice* that exercises every schema feature
@@ -111,10 +116,10 @@ likely to break and what to look at:
 ## 5. Verified
 
 ```
-npm run verify                491 passed / 37 files
+npm run verify                504 passed / 38 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
-node scripts/check-boundaries ✓ 46 source files, 5 rules
+node scripts/check-boundaries ✓ 47 source files, 5 rules
 npx tsx scripts/validate-content.ts  ✓ 1 bundle, 1 warning
   ! directive contradiction cycle dir-0203 → dir-0204 → dir-0203 (intended; the audit must resolve it)
 ```

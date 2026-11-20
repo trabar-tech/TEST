@@ -33,5 +33,31 @@
     "I have seen him.",
     "I did not see anything. I want to say we both did not see anything.",
     "Do you need my name, or do you already have my name?"
-  ]
+  ],
+  "by_grade": {
+    "calm": [
+      "Two women argue about a washing line. Neither of them lowers her voice.",
+      "A man is teaching a boy to whistle. The boy is not good at it yet.",
+      "Somebody is frying onions at the wrong hour and the whole stairwell knows.",
+      "The ration clerk is reading a newspaper from three days ago, out loud, to nobody."
+    ],
+    "wary": [
+      "The washing line argument stops when the patrol turns the corner, and starts again after.",
+      "Two men are talking with their hands in their pockets. Neither of them looks up.",
+      "A woman counts her ration slips twice on the step, then puts them away without using them.",
+      "The kiosk shuts a quarter of an hour early and does not explain why."
+    ],
+    "braced": [
+      "The street is emptier than the hour explains. The doors that are open are open a crack.",
+      "Somebody has chalked a number on the wall by the canal and nobody has rubbed it out.",
+      "A child is called in from the street by three different mothers before the fourth does it.",
+      "The queue at the ration office is standing in silence, which it has not done before."
+    ],
+    "hostile": [
+      "Every window on the row is shuttered, and one of them is shuttered from the inside with a table.",
+      "The loudspeaker repeats itself and the street does not react to it at all.",
+      "A man spits when the patrol passes, then walks away without hurrying, which is worse.",
+      "There is a smell of burning paper from the tenements and nobody has called it in."
+    ]
+  }
 }
