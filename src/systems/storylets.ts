@@ -147,6 +147,22 @@ export function scoreCard(card: Storylet, ctx: StoryContext): ScoreBreakdown {
   const alignment = faultAlignment(card, ctx.faultVector);
   if (alignment > 0.6) why.push(`probes a fault line you lean on (${alignment.toFixed(2)})`);
 
+  // RELEASE is a *refusal*, not a discount: the Arbiter's whole promise on that shift is
+  // that nothing sharp reaches the player, and a 0.15 multiplier still draws under a
+  // deterministic weighted sample. Softening it would have made the state decorative.
+  if (ctx.pacing === 'release' && card.pressure > 0.5) {
+    return {
+      card,
+      novelty: 0,
+      alignment: 0,
+      pacing: 0,
+      temperature: 0,
+      final: 0,
+      eligible: false,
+      why: [`pressure ${card.pressure} is too sharp for a release shift`],
+    };
+  }
+
   const pacing = pacingFit(card, ctx.pacing);
   if (pacing !== 1) why.push(`pacing fit ${pacing.toFixed(2)} for a ${ctx.pacing ?? 'unknown'} shift`);
 

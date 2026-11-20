@@ -30,6 +30,7 @@
 | P3-T01 (mood) | Citizens carry their household's mood | `Citizens.effectiveDread`, `Simulation.setSector` | `tests/citizen-homes.test.ts` (+5) |
 | P3-T02 (recur) | Known faces return every shift, with a reason, and **host the raid** | `src/systems/recurrence.ts`, briefing + incident host in `main.ts` | `tests/recurrence.test.ts` (21) |
 | P3-T02 (UI) | The Registry screen | `src/ui/registry.ts`, persisted Known set in `main.ts` | `tests/ui-registry.test.ts` (14) |
+| P3-T04 (live) | The 12 storylets fire in the browser | `src/systems/scene-log.ts`, `src/ui/scene.ts`, draw + play in `main.ts` | `tests/scene-flow.test.ts` (19) |
 | P3-T11 | Contradicting standing orders, enforced | `src/systems/directive-conflicts.ts`, audit `directive` findings, desk warning, `main.ts` order rotation | `tests/directive-conflicts.test.ts` (21), `tests/orders.test.ts` (7), 2 in `tests/ui-desk.test.ts` |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
 
@@ -192,6 +193,40 @@ point. Same class of bug as the `nextShift` collision in Phase 2b; renamed to `r
 the incident recorded in the commit message because the next person to write
 `const host =` in `main.ts` deserves the warning.
 
+## 2g. The storylets fire
+
+Twelve authored storylets had been sitting in the content bundle since Phase 3 began,
+scored by a runtime with 27 tests, and **never once shown to a player.** That is the most
+expensive kind of completeness: a system that is correct in isolation and absent in fact.
+
+They are live now:
+
+- `src/systems/scene-log.ts` — the shift's cards, what was played, and the effects the
+  resolutions wrote. Deliberately not a view: the deck knows nothing about DOM, the view
+  knows nothing about decks, and the seam between them is three fields.
+- `src/ui/scene.ts` — beats in prose, then the resolutions as things an officer would say
+  out loud, then a closing line stating plainly that *the choice still has to be written
+  up*. No numbers anywhere: a scene is a situation, not a spreadsheet.
+- `main.ts` draws on the beat opening (two cards on shift 1, one thereafter) and plays them
+  with 900 ms of air between, so two cards never stack.
+
+A scene's choice reaches the district: the authored `legitimacy` on each resolution moves
+grievance, and the closing line goes out on the radio. The flag and epilogue effects feed
+`sim.effectState`, which the deck reads — so `me-03-press` scheduling `epi-01-press-moved`
+now actually schedules it.
+
+**A real bug fell out of wiring it.** The docs claim `pressure ≥ 0.5` is *refused* by a
+RELEASE shift; `pacingFit()` only multiplied it by 0.15, and under a deterministic weighted
+draw a discounted card still gets picked. Release was decorative. `scoreCard()` now returns
+`eligible: false` with the reason `"pressure 0.5 is too sharp for a release shift"`, which is
+what the Arbiter's promise actually requires.
+
+Two name collisions in one commit, both caught by the compiler rather than by play:
+`createScene` already existed in the renderer (aliased to `createStoryScene`), and
+`pressureFromIndex` lives in `tactical/force` rather than `sector`. The first is the third
+collision of this kind in the project; the lesson has been written into `AGENTS.md` as a
+standing warning about `main.ts`.
+
 ## 2b. Standing orders are now a rule, not a comment
 
 The contradiction graph was detected and warned about since Phase 0 and **enforced by
@@ -243,6 +278,10 @@ says so."
 - **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
   (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
   system and it needs the shift's tally, which currently lives in `main.ts`.
+- **Scenes are one card deep per shift.** The deck draws two cards on shift 1 and one
+  thereafter, and a card is played on the street before the desk. There is no *between*-shift
+  economy for a scene yet: its legitimacy touches the district, but its `standing` and
+  `integrity` totals are computed and not yet spent anywhere (standing is Phase 4's currency).
 - **Only one site can be hosted.** The flat is bound to a household (§2f), but the canal-market
   crowd is still an authored anchor and only accepts a household id nobody supplies. The
   generic version — an incident *deck* whose cards carry a `host` requirement — needs the
@@ -262,10 +301,12 @@ says so."
 The three pass questions are unchanged. From this build, here is where each one is most
 likely to break and what to look at:
 
-1. **Unprompted aliveness (2 of 3).** Watch whether anyone repeats a faction report line
-   *spontaneously*. The district currently narrates itself in the Inspector and in the
-   briefing, which is passive. If nobody mentions the Cell without being asked, the fix is
-   the pre-committed one: raise connective tissue and add epilogues.
+1. **Unprompted aliveness (2 of 3).** The street now interrupts: scenes open with their own
+   prose, and a choice leaves a line on the radio. Watch whether a tester describes the
+   district as *doing things* rather than *showing things* — the scenes are the main new
+   surface for that, and two cards in a whole shift may not be enough. If nobody volunteers
+   an event unprompted, the fix is still the pre-committed one: raise the connective-tissue
+   ratio and add epilogues.
 2. **Fairness (2 of 3).** Ask "why did that happen?" *without opening the Inspector first*.
    If the tester reaches for it, that is a pass for the machinery and a note that the reasons
    need to reach the surface — the ladder's step 2, the "what the Directorate noticed"
@@ -283,10 +324,10 @@ likely to break and what to look at:
 ## 5. Verified
 
 ```
-npm run verify                621 passed / 45 files
+npm run verify                640 passed / 46 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
-node scripts/check-boundaries ✓ 52 source files, 5 rules
+node scripts/check-boundaries ✓ 54 source files, 5 rules
 npx tsx scripts/validate-content.ts  ✓ 1 bundle, 0 warnings
 ```
 

@@ -41,6 +41,17 @@ import {
   raidAddress,
   type Recurrence,
 } from '@systems/recurrence';
+import {
+  createSceneLog,
+  closingLine,
+  pending,
+  playResolution,
+  sceneTotals,
+  type SceneLogState,
+} from '@systems/scene-log';
+// NB: the renderer already exports `createScene`; this is the narrative one
+import { createScene as createStoryScene } from '@ui/scene';
+import { buildDeck, storyletRng } from '@systems/storylets';
 import { createRegistry, meetHousehold } from '@ui/registry';
 import { Incident } from '@systems/tactical/incident';
 import { createIncidentView } from '@ui/incident-view';
@@ -269,6 +280,71 @@ async function start(): Promise<void> {
   /** the household this shift's raid is at, so the docket can be charged for it */
   let currentHost: string | null = null;
 
+  /**
+   * The shift's scenes (P3-T04). The deck has been tested since it was written and
+   * pulled no strings in the running game; this is the string.
+   */
+  let scenes: SceneLogState = createSceneLog(1);
+  let sceneView: ReturnType<typeof createStoryScene> | null = null;
+
+  /**
+   * Draw this shift's cards. Called when the beat opens, so the street is already
+   * running when the first one appears.
+   */
+  function drawScenes(): void {
+    scenes = createSceneLog(sim.state.shift);
+    scenes.scheduled = [...sim.effectState.scheduled];
+    const deck = buildDeck('beat_morning', loaded.bundle.micro_events, { includeBeats: true });
+    const drawn = deck.draw({
+      k: sim.state.shift === 1 ? 2 : 1,
+      ctx: {
+        shift: sim.state.shift,
+        temperature: sim.streetTemperature(),
+        flags: sim.state.flags,
+        knownCount: loadKnown().size,
+        pacing: sim.arbiterState(),
+        faultVector: sim.faultVector(),
+        recentArchetypes: scenes.recentArchetypes,
+      },
+      rng: storyletRng(seed, sim.state.shift),
+    });
+    scenes.drawn = drawn.picks.filter((c) => c._type !== 'epilogue_storylet');
+  }
+
+  /** Open the next unplayed scene, if there is one and nothing else is on screen. */
+  function playNextScene(): void {
+    if (sceneView || incident || desk || registry || panel || crowd) return;
+    const card = pending(scenes)[0];
+    if (!card) return;
+    const news = recurrenceFor(sim.state.shift);
+    sceneView = createStoryScene(host, {
+      card,
+      why: news ? news.why : undefined,
+      onResolve: (resolutionId) => {
+        sceneView?.destroy();
+        sceneView = null;
+        const played = playResolution(scenes, { card, resolutionId });
+        if (!played) return;
+        // a choice that changes the district is a choice that changed something
+        const totals = sceneTotals(scenes);
+        if (totals.legitimacy !== 0) {
+          sectorState = {
+            ...sectorState,
+            households: sectorState.households.map((h) => ({
+              ...h,
+              grievance: Math.max(0, Math.min(1, h.grievance - totals.legitimacy * 0.02)),
+            })),
+          };
+          sim.setSector(sectorState);
+        }
+        const line = closingLine(scenes);
+        if (line) hud.radio(line, 'speaker');
+        // the next one comes after a beat, so two cards never stack without air
+        window.setTimeout(playNextScene, 900);
+      },
+    });
+  }
+
   let playlist: ReturnType<typeof createPlaylist> | null = null;
 
   /**
@@ -329,6 +405,8 @@ async function start(): Promise<void> {
         box.remove();
         briefingEl = null;
         sim.beginBeat();
+        drawScenes();
+        window.setTimeout(playNextScene, 700);
         hud.announce(`SHIFT 1 · ${sim.quotaInspections} INSPECTIONS`, 4200);
         hud.radio(barks.radio());
         showAnchors();
@@ -757,6 +835,7 @@ async function start(): Promise<void> {
     });
     // rebuild the street at its posts; the record survives, the people reset
     sim.resetBeat();
+    drawScenes();
     showBriefing();
     hud.announce(
       `SHIFT ${sim.state.shift} · ${readSector(sim.state).force.toFixed(1)} SECTOR FORCE`,

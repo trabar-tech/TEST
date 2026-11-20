@@ -25,7 +25,10 @@ import {
   type CitizenHome,
 } from './citizen-homes';
 import type { Grudge } from './plans';
-import type { SectorState } from './households';
+import { newArbiter } from './directors';
+import { temperature as temperatureOf, type SectorState } from './households';
+import { forceIndexOf } from './sector';
+import { pressureFromIndex } from './tactical/force';
 import {
   RecordStore,
   claimOf,
@@ -208,6 +211,12 @@ export class Simulation {
    * with a cause*, never a rival: it changes who appears and why, and it decays.
    */
   grudges: Grudge[] = [];
+  /** the Arbiter's pacing, kept here so the deck and the briefing read one source */
+  arbiter: ReturnType<typeof newArbiter> | null = null;
+  /** the Desk's fault vector, same reason */
+  fault: Record<string, number> = {};
+  /** flags and scheduled epilogues written by scenes and inspections */
+  readonly effects: { flags: Record<string, boolean | number | string>; scheduled: Array<{ id: string; dueShift: number; cause: string }> } = { flags: {}, scheduled: [] };
   quotaInspections: number;
   inspectionsDone = 0;
   /** Standing orders for the shift; empty means the contradiction test does not fire */
@@ -709,6 +718,31 @@ export class Simulation {
   }
 
   /** Live exposure for the gutter, given the player's current draft. */
+  /**
+   * The temperature the street reads (P3-T03): from the district when there is one, and
+   * from the force ratchet when there is not. One number, so the barks, the deck and the
+   * inspector cannot disagree about what kind of day it is.
+   */
+  streetTemperature(): number {
+    if (this.sector) return temperatureOf(this.sector);
+    return Math.round(pressureFromIndex(forceIndexOf(this.state)) * 100);
+  }
+
+  /** The Arbiter's state, for the deck's pacing fit. */
+  arbiterState(): 'calm' | 'build' | 'peak' | 'release' {
+    return this.arbiter?.state ?? 'calm';
+  }
+
+  /** The Desk's picture of the Warden, for the deck's fault alignment. */
+  faultVector(): Record<string, number> {
+    return { ...this.fault };
+  }
+
+  /** Epilogues and flags written by scenes and inspections, shared with the deck. */
+  get effectState(): { flags: Record<string, boolean | number | string>; scheduled: Array<{ id: string; dueShift: number; cause: string }> } {
+    return this.effects;
+  }
+
   /** What the desk may show before signing, and nothing else. */
   directives(): readonly Directive[] {
     return this.liveDirectives;

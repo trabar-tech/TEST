@@ -46,7 +46,7 @@ npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
                    # E opens the desk early, C opens the case file, F enters the flat,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 621 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 640 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
@@ -64,6 +64,10 @@ file: arrests raise a household's grievance, the neighbours feel a third of it, 
 do outlasts what you say. The people you learn to name come back every shift, the briefing
 tells you why, and the raid goes to their door — so the person in the briefing is the person
 behind the door you came through.
+
+Scenes happen on the street: a card of three beats, a decision, and a closing line reminding you
+that the decision still has to be written up. What you choose moves the district — and a
+scheduled consequence can arrive three shifts later, when you have stopped thinking about it.
 
 Each shift the Directorate issues three standing orders, and some of them contradict each
 other: obeying both is charged on the audit sheet, and the desk's exposure gutter warns you
