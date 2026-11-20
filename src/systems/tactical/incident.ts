@@ -102,6 +102,21 @@ export interface IncidentResult {
   ticksElapsed: number;
 }
 
+/** Unit vector, or null for a zero direction (a non-input, not a still one). */
+function normalise(v: Vec2): Vec2 | null {
+  const d = Math.hypot(v.x, v.y);
+  if (d < 1e-6) return null;
+  return { x: v.x / d, y: v.y / d };
+}
+
+/** Smallest signed difference between two angles, in [-π, π]. */
+function angleDelta(a: number, b: number): number {
+  let d = a - b;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
 export class Incident {
   readonly map: TileMap;
   readonly json: InteriorMapJson;
@@ -415,6 +430,107 @@ export class Incident {
   private soloRouteIndex = 0;
 
   /**
+   * Direct control of the Warden (playtest 2: "a tactical shooter with bureaucracy sim").
+   *
+   * Until now the Warden moved only by executing an *order* — the plan board told the body
+   * where to go. That reads as a strategy layer, not a shooter, because the player never
+   * controls the thing that is in danger. These three methods are the missing half: WASD
+   * moves the body, the mouse aims, and the trigger is a trigger.
+   *
+   * Deliberately small, because everything here is *paperwork's* input: the shot is recorded
+   * as force used, the hit is recorded as a hit, and the record does not care how good you are.
+   */
+  setMoveIntent(dir: Vec2 | null): void {
+    this.moveIntent = dir ? normalise(dir) : null;
+    // a held direction overrides a queued route: the player is driving now
+    if (dir) {
+      this.soloRoute = [];
+      this.soloRouteIndex = 0;
+    }
+  }
+
+  private moveIntent: Vec2 | null = null;
+
+  /** Aim, in world radians. The renderer draws it; hostile fire does not read it. */
+  setAim(angle: number): void {
+    this.aim = angle;
+  }
+
+  aim = 0;
+
+  /**
+   * Whether the aim line currently runs into a wall.
+   *
+   * Drawn rather than enforced: the player should see a wall in the way without the game
+   * refusing the input, because a shot into a wall is a *fact about tonight* and the record
+   * is the thing that cares.
+   */
+  get aimLineBlocked(): boolean {
+    const reach = 3.2 * this.map.tileSize;
+    const step = this.map.tileSize * 0.25;
+    for (let d = step; d <= reach; d += step) {
+      const p = { x: this.warden.x + Math.cos(this.aim) * d, y: this.warden.y + Math.sin(this.aim) * d };
+      const tile = this.map.toTile(p);
+      if (!this.map.isWalkable(tile.tx, tile.ty)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Fire.
+   *
+   * The honest design constraint: this is **not** an aim skill check. A shot that happens at
+   * all is a shot that occurred, and the paperwork records it — `forceUsed` gains a rung-5
+   * entry and the exposure of the line afterwards is the real cost. Whether it hits is a
+   * geometry question (is anything in the lane, close enough), not a reflex question, because
+   * the game's claim is about consequences, not about twitch.
+   */
+  fire(): { fired: boolean; hit: string | null; reason?: string } {
+    if (this.ended) return { fired: false, hit: null, reason: 'the incident is over' };
+    if (this.fireCooldown > 0) return { fired: false, hit: null, reason: 'the weapon is empty' };
+    this.fireCooldown = Incident.FIRE_COOLDOWN;
+
+    const range = 6 * this.map.tileSize;
+    const target = this.targetInLane(range);
+    this.forceUsed.push({
+      hostile: target?.id ?? 'none',
+      rung: 5 as ForceRung,
+      tool: 'firearm',
+      logTag: target ? 'fired_on_subject' : 'fired_into_room',
+    });
+    // lethal force without a grant is the finding the audit looks for first
+    this.unauthorisedForce = this.authorisation === null || this.authorisation.rung < 5;
+    // the shot is the loudest thing in the building, and it is the thing a report notices
+    this.noises.push({ source: 'shot', at: { ...this.warden }, radius: 16, walls: 4, tick: this.tick });
+    if (!target) return { fired: true, hit: null };
+    target.wound = target.wound === 'healthy' ? 'wounded' : 'dead';
+    if (target.wound === 'dead') this.casualties += 1;
+    return { fired: true, hit: target.id };
+  }
+
+  private fireCooldown = 0;
+  static readonly FIRE_COOLDOWN = 0.55;
+
+  /** The nearest spotted, upright hostile inside a narrow cone ahead. */
+  private targetInLane(range: number): HostileState | null {
+    let best: HostileState | null = null;
+    let bestDist = range;
+    for (const h of this.hostiles.values()) {
+      if (h.detained || h.wound === 'dead') continue;
+      const dx = h.pos.x - this.warden.x;
+      const dy = h.pos.y - this.warden.y;
+      const d = Math.hypot(dx, dy);
+      if (d > bestDist || d < 1) continue;
+      const delta = Math.abs(angleDelta(Math.atan2(dy, dx), this.aim));
+      // generous: 30 degrees, because a shooter without a crosshair should not feel cheated
+      if (delta > Math.PI / 6) continue;
+      best = h;
+      bestDist = d;
+    }
+    return best;
+  }
+
+  /**
    * Focus is a **timescale**, not a buff (SYS-TACT-01 §1): the world runs at
    * 0.35× while it is held. It is deliberately *not* a movement multiplier — you
    * cover the same ground per sim-second, you simply get 2.9× more real seconds
@@ -464,6 +580,8 @@ export class Incident {
    * it makes you faster at the thing that gets you shot.
    */
   static readonly SOLO_HIT_SECONDS = 2.2;
+  /** tiles per second under direct control (the route speed stays 2.4) */
+  static readonly SOLO_SPEED = 3.1;
 
   /**
    * How much *sim* time a deliberate player action costs. This exists because
@@ -480,6 +598,20 @@ export class Incident {
   soloExposure = 0;
 
   private stepSolo(dt: number): void {
+    this.fireCooldown = Math.max(0, this.fireCooldown - dt);
+
+    // direct control first: a held direction wins over a queued route
+    if (this.moveIntent) {
+      const speed = Incident.SOLO_SPEED * this.map.tileSize * dt;
+      const nx = this.warden.x + this.moveIntent.x * speed;
+      const ny = this.warden.y + this.moveIntent.y * speed;
+      const tile = this.map.toTile({ x: nx, y: ny });
+      // walls stop the body; sliding is not modelled, because a shooter needs a readable wall
+      if (this.map.isWalkable(tile.tx, tile.ty)) this.warden = { x: nx, y: ny };
+      this.soloRoute = [];
+      this.soloRouteIndex = 0;
+    }
+
     const wardenTile = this.map.toTile(this.warden);
     const armed = [...this.hostiles.values()].filter((h) => {
       if (h.archetype !== 'armed' || h.wound !== 'healthy' || h.detained || !h.spotted) return false;

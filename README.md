@@ -39,14 +39,25 @@ settled at a gate. Work is done in `P<phase>-T<nn>` tasks, each with **one unkno
 build wins and the doc is fixed in the same session. Full conventions:
 [`docs/README.md`](docs/README.md).
 
+## What this is
+
+A **tactical shooter with a bureaucracy sim.** You go into flats with a trigger under your
+finger, and then you have to write down what happened — and the record is what the city, the
+audit and the district respond to. Force used without authorisation, a subject you shot, a room
+you claimed was clear: all of it becomes a line you sign.
+
+Walking the street and inspecting people is the *other* half of a shift: the check-up, the
+quiet night, the paperwork that protects you before it convicts you.
+
 ## Running it
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
-                   # E opens the desk early, C opens the case file, F enters the flat,
+                   # F enters the flat (WASD walk · mouse aim · click fire),
+                   # E opens the desk early, C opens the case file,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 730 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 741 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 npm run campaign   # headless 15-shift campaign: 4 policies x N seeds, one line per run

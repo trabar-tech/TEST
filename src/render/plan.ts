@@ -137,7 +137,15 @@ export function createPlan(inc: Incident, cssWidth = 440): PlanHandle {
       }
     }
 
-    // the Warden, when solo
+    // the Warden, when solo — with a facing line, because a shooter you cannot aim is a cursor
+    if (!inc.hasSquad) {
+      ctx.strokeStyle = inc.aimLineBlocked ? 'rgba(201,112,95,.55)' : 'rgba(216,176,106,.5)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(inc.warden.x, inc.warden.y);
+      ctx.lineTo(inc.warden.x + Math.cos(inc.aim) * t * 3.2, inc.warden.y + Math.sin(inc.aim) * t * 3.2);
+      ctx.stroke();
+    }
     ctx.fillStyle = GOLD;
     ctx.fillRect(inc.warden.x - t * 0.2, inc.warden.y - t * 0.2, t * 0.4, t * 0.4);
     if (inc.focusActive) {

@@ -98,6 +98,7 @@ const BRIEFING = [
   'Anything you do not write up, the audit will write up for you, and it will not be kind.',
   '',
   'Click a citizen to inspect. Talk to them. Decide. Then file it at the desk.',
+  'Press F to go into a flat. Inside: WASD walks, the mouse aims, a click fires.',
   'Whatever you sign becomes what the city knows.',
 ].join('\n');
 
@@ -409,6 +410,12 @@ async function start(): Promise<void> {
         drawScenes();
         window.setTimeout(playNextScene, TUNING.scenes.delay_before_first_ms);
         hud.announce(`SHIFT 1 · ${sim.quotaInspections} INSPECTIONS`, 4200);
+        // the tactical layer is only real if a player can find it: playtest 1 never did,
+        // because F was documented nowhere on screen
+        window.setTimeout(
+          () => hud.radio('Click a citizen to speak to them. When you are ready to go in, press F — you will be walking, not ordering.', 'speaker'),
+          4600,
+        );
         hud.radio(barks.radio());
         showAnchors();
       }, {

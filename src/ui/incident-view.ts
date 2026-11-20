@@ -74,10 +74,96 @@ export function createIncidentView(
   );
   middle.append(header);
 
-  const planHolder = el('div', 'display:flex;justify-content:center;width:100%');
+  const planHolder = el('div', 'display:flex;justify-content:center;width:100%;position:relative');
   const plan = createPlan(inc, 460);
   planHolder.append(plan.canvas);
   middle.append(planHolder);
+
+  /**
+   * Direct control (playtest 2: "a tactical shooter with bureaucracy sim").
+   *
+   * WASD moves the Warden; the mouse aims; a click fires. Deliberately the last layer added
+   * and the smallest: the incident is still a document with a map in it, and the shot still
+   * has to be written up. What it fixes is that the player never controlled the body that was
+   * in danger — the plan board ordered it around.
+   *
+   * Solo only. With a squad the Warden is not in the building, and pretending otherwise would
+   * break the force-continuum fiction.
+   */
+  const keys = new Set<string>();
+  const KEY_DIRS: Record<string, { x: number; y: number }> = {
+    w: { x: 0, y: -1 },
+    a: { x: -1, y: 0 },
+    s: { x: 0, y: 1 },
+    d: { x: 1, y: 0 },
+    arrowup: { x: 0, y: -1 },
+    arrowleft: { x: -1, y: 0 },
+    arrowdown: { x: 0, y: 1 },
+    arrowright: { x: 1, y: 0 },
+  };
+
+  const applyIntent = (): void => {
+    let x = 0;
+    let y = 0;
+    for (const k of keys) {
+      const d = KEY_DIRS[k];
+      if (d) {
+        x += d.x;
+        y += d.y;
+      }
+    }
+    inc.setMoveIntent(x === 0 && y === 0 ? null : { x, y });
+  };
+
+  const onKeyDown = (e: KeyboardEvent): void => {
+    const k = e.key.toLowerCase();
+    if (!(k in KEY_DIRS)) return;
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    e.preventDefault();
+    keys.add(k);
+    applyIntent();
+  };
+  const onKeyUp = (e: KeyboardEvent): void => {
+    const k = e.key.toLowerCase();
+    if (!(k in KEY_DIRS)) return;
+    keys.delete(k);
+    applyIntent();
+  };
+  // a lost focus must not leave the Warden walking into a wall forever
+  const onBlur = (): void => {
+    keys.clear();
+    applyIntent();
+  };
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
+  window.addEventListener('blur', onBlur);
+
+  const toWorld = (e: MouseEvent): { x: number; y: number } => {
+    const rect = plan.canvas.getBoundingClientRect();
+    const scaleX = (inc.map.width * inc.map.tileSize) / (rect.width || 1);
+    const scaleY = (inc.map.height * inc.map.tileSize) / (rect.height || 1);
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+  };
+
+  plan.canvas.addEventListener('pointermove', (e) => {
+    if (inc.hasSquad) return;
+    const p = toWorld(e);
+    inc.setAim(Math.atan2(p.y - inc.warden.y, p.x - inc.warden.x));
+  });
+
+  plan.canvas.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || inc.hasSquad) return;
+    e.preventDefault();
+    const p = toWorld(e);
+    inc.setAim(Math.atan2(p.y - inc.warden.y, p.x - inc.warden.x));
+    const shot = inc.fire();
+    if (shot.fired) {
+      plan.draw();
+      render();
+    } else if (shot.reason) {
+      planHolder.setAttribute('data-shot', shot.reason);
+    }
+  });
 
   const footer = el('div', `display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;margin-top:2px`);
   middle.append(footer);
@@ -280,6 +366,11 @@ export function createIncidentView(
     root,
     render,
     destroy() {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+      keys.clear();
+      inc.setMoveIntent(null);
       root.remove();
     },
   };
