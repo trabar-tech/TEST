@@ -355,6 +355,24 @@ export function createDesk(
       );
     }
 
+    // The home: learned by looking, not by guessing. It appears here rather than only
+    // on the case file, because "do I file a line naming this household?" is a
+    // decision, and decisions belong beside the evidence (P3-T02).
+    if (event.edge) {
+      const home = el('div', 'margin-top:12px;padding-top:10px;border-top:1px solid rgba(120,140,160,.18)');
+      home.append(
+        el('div', 'font-size:9px;letter-spacing:.14em;color:#6f7d8b', 'THE HOUSEHOLD'),
+        el('div', 'margin-top:4px;font-size:9.5px;color:#c9d3dd;line-height:1.5', event.edge.line),
+        el('div', 'margin-top:3px;font-size:9px;color:#4d5a67', event.edge.household_id),
+      );
+      if (event.edge.discrepancy) {
+        home.append(
+          reason('⌂', 'the card and the record disagree', `${event.edge.discrepancy}. That is a line you could write.`),
+        );
+      }
+      col.append(home);
+    }
+
     col.append(why);
 
     col.append(

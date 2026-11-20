@@ -25,6 +25,7 @@
 | P3-T08 | Cell HTN-lite plans + grudges | `src/systems/plans.ts` | same |
 | P3-T03/T10/T12 | Composition + the Inspector | `src/systems/showrunner.ts`, `src/ui/inspector.ts` | `tests/showrunner.test.ts` (21), `tests/ui-inspector.test.ts` (13) |
 | P3-T03 tail | The street speaks its grade | `src/systems/mood.ts`, `Barks.forGrade`, `barks.json#by_grade` | `tests/mood.test.ts` (13) |
+| P3-T02 (wire) | The street **is** the district: stable homes, learned by inspection, filed lines make people Known | `src/systems/citizen-homes.ts`, `Simulation.homeOf/knownCandidate`, desk `THE HOUSEHOLD` panel | `tests/citizen-homes.test.ts` (20), `tests/ui-desk-home.test.ts` (4) |
 | P3-T02 (UI) | The Registry screen | `src/ui/registry.ts`, persisted Known set in `main.ts` | `tests/ui-registry.test.ts` (14) |
 | P3-T11 | Contradicting standing orders, enforced | `src/systems/directive-conflicts.ts`, audit `directive` findings, desk warning, `main.ts` order rotation | `tests/directive-conflicts.test.ts` (21), `tests/orders.test.ts` (7), 2 in `tests/ui-desk.test.ts` |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
@@ -70,6 +71,37 @@ it. `claim` codes are also now authoring-checked against the record layer's lega
 **A district with nobody in it reports 0, not 50.** `temperature()` on an empty household list
 divided nothing by nothing and returned the neutral band. Zero is the honest answer: an
 evacuated district is not half-hostile.
+
+## 2a. The street and the district are the same people
+
+Until this commit they were not. `materialise()` was pure and tested, and the six
+citizens on the street were authored in a *different file* from the sixty households —
+so the sim doc's promise ("the person you arrest on Tuesday is the mother from the flat
+you cleared on Monday") was **provably false in the running game**. Purity without a
+binding is a property of a function, not of a world.
+
+`src/systems/citizen-homes.ts` binds them:
+
+- **A stable home.** `homeFor()` seeds the assignment from `(campaign seed, citizen id)`
+  and prefers a household in the same block as the citizen's post (`laundry` →
+  `laundry_yard`), so the street's geography does not lie about where people sleep. It
+  uses the *citizen* stream, not the household stream, so growing the district from 60
+  to 40 cannot re-home anybody.
+- **Learned, not assumed.** The home appears on the docket note and in a `THE HOUSEHOLD`
+  panel on the desk, beside the evidence — because "do I file a line naming this
+  household?" is the actual decision, and decisions belong next to their evidence.
+- **A visible disagreement.** `describeDiscrepancy()` compares the card the citizen
+  carries against the household registration and reports the gap at the severity the
+  papers already show. A crowded class-D household with an over-classed card is a line
+  the Warden can write, and it is never a hidden fact.
+- **The rule, in one place.** One conversation is not a relationship; two, or a filed
+  line naming them, puts the household in the Known set. `knownReason()` owns that test
+  so the sim cannot encode it twice and drift.
+
+The loop now closes end to end: inspect → the home is visible → file a line → the
+household enters the Known set → the Registry shows a new face → the *same record* can
+be materialised as the person in the flat next Monday. That is the continuity the design
+claims, and it is now true of the same data rather than of a sentence in a document.
 
 ## 2b. Standing orders are now a rule, not a comment
 
@@ -122,6 +154,11 @@ says so."
 - **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
   (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
   system and it needs the shift's tally, which currently lives in `main.ts`.
+- **Citizens do not yet *react* to their household.** The binding is one-directional: the
+  street teaches the district to the player, but a household in a `condemned` block does not
+  change a citizen's dread, and arresting a citizen does not raise their household's
+  grievance. That second direction is where "the city remembers" actually lives, and it is
+  the next thing to build.
 - **The Registry screen is the only campaign surface in the browser.** `R` (or `?registry`)
   opens it: twelve faces with the household line and why each is known, the rest of the
   sector as anonymous records, and a column of people who have gone out of your head.
@@ -148,18 +185,19 @@ likely to break and what to look at:
 3. **Apophenia (2 of 3).** This is the one the build is aimed at. `materialise()` is pure, so
    the person arrested on Tuesday is provably the person from Monday's flat, the Known set is
    capped at 12, and the Registry screen is where a tester can actually look at the names.
-   What is still missing is *frequency*: nothing forces a Known face into a shift, and the
-   visitors (the six slice citizens on the street) are not yet drawn from the same sixty
-   households. If testers cannot name three citizens, the ladder's step 3 (cap 8, force a
-   known face every shift) applies directly — and `KnownSet(8)` already works.
+   The six people on the street now *are* six of the sixty, so a tester who inspects and
+   files meets real households rather than invented ones. What is still missing is *frequency*:
+   nothing forces a Known face back into a shift — a person you know is not more likely to
+   be the next incident. If testers cannot name three citizens, that is the gap to close
+   (ladder step 3: cap 8, force a known face every shift; `KnownSet(8)` already works).
 
 ## 5. Verified
 
 ```
-npm run verify                548 passed / 41 files
+npm run verify                572 passed / 43 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
-node scripts/check-boundaries ✓ 49 source files, 5 rules
+node scripts/check-boundaries ✓ 50 source files, 5 rules
 npx tsx scripts/validate-content.ts  ✓ 1 bundle, 0 warnings
 ```
 

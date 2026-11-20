@@ -108,6 +108,13 @@ async function start(): Promise<void> {
   const wantsRegistry = params.has('registry');
   const seed = Number(params.get('seed') ?? 20261118) || 20261118;
 
+  /**
+   * The district behind the street. Generated once from the seed and shared with the
+   * sim, so the citizen you inspect and the household in the Registry are the same
+   * record rather than two lists that happen to be on the same screen.
+   */
+  const sectorState = generateSector({ seed });
+
   const sim = new Simulation({
     seed,
     shift: 1,
@@ -115,6 +122,9 @@ async function start(): Promise<void> {
     mapJson: sliceMap,
     citizens: citizensJson as unknown as CitizenFile,
     quotaInspections: Number(params.get('quota') ?? 3) || 3,
+    // the street is bound to the district (P3-T02): every citizen has a household,
+    // and inspecting them is how the Warden learns it
+    sector: sectorState,
   });
   const saves = createSaveService(storage);
   sim.bus.emit('content:loaded', {
@@ -224,9 +234,6 @@ async function start(): Promise<void> {
   const saveKnown = (set: KnownSet): void => {
     sim.state.flags[knownKey] = set.toJSON() as never;
   };
-
-  /** The district behind the street: generated once from the seed, never re-rolled. */
-  let sectorState = generateSector({ seed });
 
   function openRegistry(): void {
     if (registry) return;
@@ -607,7 +614,37 @@ async function start(): Promise<void> {
     desk = createDesk(sim, host, { onSubmit: submitDocket });
   }
 
+  /**
+   * The edge into the district, closed (P3-T02).
+   *
+   * A filed line that names someone is what puts their household in the Warden's
+   * head — not walking past them, and not opening the Registry. This is the loop the
+   * design claims: paperwork is how the city learns to know you.
+   */
+  function learnFromFilings(): void {
+    const known = loadKnown();
+    let changed = false;
+    for (const event of sim.docket) {
+      if (!event.subject || !event.edge) continue;
+      const filed = sim.record
+        .query({ shift: sim.state.shift })
+        .some((l) => l.event_ref === event.ref && l.authority === 'self');
+      const candidate = sim.knownCandidate(event.subject);
+      if (!filed || !candidate || known.has(candidate.householdId)) continue;
+      const evicted = known.add({ household_id: candidate.householdId, reason: candidate.reason }, sim.state.shift);
+      changed = true;
+      if (evicted) {
+        hud.radio(`${evicted.household_id} drops off your list. You will not get the name back.`, 'speaker');
+      }
+    }
+    if (changed) {
+      saveKnown(known);
+      registry?.refresh();
+    }
+  }
+
   function submitDocket(): void {
+    learnFromFilings();
     const result = sim.submit();
     desk?.destroy();
     desk = null;

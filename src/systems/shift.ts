@@ -19,6 +19,13 @@ import { streamFor, type Rng } from '@core/rng';
 import type { Directive } from '@core/content';
 import { satisfiedDirectives } from './directive-conflicts';
 import {
+  describeHome,
+  homeFor,
+  knownReason,
+  type CitizenHome,
+} from './citizen-homes';
+import type { SectorState } from './households';
+import {
   RecordStore,
   claimOf,
   computeExposure,
@@ -118,6 +125,12 @@ export interface DocketEvent {
    * the form does not.
    */
   scene?: DocketScene;
+  /**
+   * The citizen's home in the district (P3-T02). Present only when the street is
+   * bound to a sector, and always a *claim* — it is a record the Warden can look up,
+   * not a hidden fact.
+   */
+  edge?: { household_id: string; line: string; discrepancy: string | null };
 }
 
 export interface DocketScene {
@@ -147,6 +160,11 @@ export interface ShiftOptions {
   bus?: EventBus;
   /** standing orders in force tonight, for the contradiction test (P3-T11) */
   directives?: readonly Directive[];
+  /**
+   * The district behind the street (P3-T02). When supplied, every citizen has a
+   * household record, and the Warden learns which one by inspecting them.
+   */
+  sector?: SectorState;
 }
 
 export interface InspectionState {
@@ -188,6 +206,10 @@ export class Simulation {
   inspectionsDone = 0;
   /** Standing orders for the shift; empty means the contradiction test does not fire */
   readonly liveDirectives: readonly Directive[];
+  /** The district, when the street is bound to it; null in the pure Phase 1 slice */
+  readonly sector: SectorState | null;
+  /** citizen id → the household they live in, resolved on first need */
+  private readonly homes = new Map<string, CitizenHome | null>();
 
   private readonly rng: Rng;
   private pawnId = 0;
@@ -201,6 +223,7 @@ export class Simulation {
     this.bus = opts.bus ?? new EventBus({ recording: true });
     this.quotaInspections = opts.quotaInspections ?? 3;
     this.liveDirectives = opts.directives ?? [];
+    this.sector = opts.sector ?? null;
 
     const state = emptyState(opts.seed);
     state.shift = opts.shift ?? 1;
@@ -423,6 +446,35 @@ export class Simulation {
    * written at the desk, which is precisely where the player can still change
    * it — the lie the whole game is about lives in that gap.
    */
+  /**
+   * Where a citizen lives. Resolved once and cached, because it must not change
+   * between two looks at the same person in one shift.
+   */
+  homeOf(citizenId: string): CitizenHome | null {
+    if (this.homes.has(citizenId)) return this.homes.get(citizenId) ?? null;
+    const def = this.citizens.def(citizenId);
+    const home = this.sector && def ? homeFor(this.sector, this.state.seed, def) : null;
+    this.homes.set(citizenId, home);
+    return home;
+  }
+
+  /**
+   * Should this household now be Known? The sim doc's rule is two interactions or a
+   * filed line naming them; `marked` is set when a line is filed for the event, so
+   * the second inspection of the same person is what usually does it.
+   */
+  knownCandidate(citizenId: string): { householdId: string; reason: string } | null {
+    const home = this.homeOf(citizenId);
+    if (!home) return null;
+    const inspections = this.inspectionCounts.get(citizenId) ?? 0;
+    const filed = this.filedNames.has(citizenId);
+    const reason = knownReason(home, inspections, filed);
+    return reason ? { householdId: home.household_id, reason } : null;
+  }
+
+  private readonly inspectionCounts = new Map<string, number>();
+  private readonly filedNames = new Set<string>();
+
   resolveInspection(classification: Classification, opts: { bribe?: boolean } = {}): DocketEvent | null {
     const insp = this.inspection;
     if (!insp) return null;
@@ -470,6 +522,19 @@ export class Simulation {
       draft,
       tags_hint: defective ? ['insufficient_papers'] : [],
     };
+
+    // the edge into the district: a citizen is a household, and the case file says so
+    this.inspectionCounts.set(def.id, (this.inspectionCounts.get(def.id) ?? 0) + 1);
+    const home = this.homeOf(def.id);
+    if (home) {
+      event.edge = {
+        household_id: home.household_id,
+        line: describeHome(home),
+        discrepancy: home.discrepancy,
+      };
+      // the papers carry the home too, so the desk can show it without new plumbing
+      event.note += ` They live in ${describeHome(home)}.`;
+    }
 
     this.docket.push(event);
     this.inspectionsDone += 1;
@@ -643,6 +708,9 @@ export class Simulation {
       exposure,
     });
     if (event.scene) line.scene = docketSceneFacts(event.scene);
+    // filing a line that names someone is what makes them Known — the record, not
+    // the act of walking past them, is what puts a person in the Warden's head
+    if (event.subject) this.filedNames.add(event.subject);
     line.derived = { slack: slack(entry.claim, event.truth), caught: false, consequences: [] };
     this.record.append(line);
     this.bus.emit('desk:filed', {
@@ -675,6 +743,9 @@ export class Simulation {
         this.record.nextId(this.state.shift),
       );
       if (event.scene) line.scene = docketSceneFacts(event.scene);
+    // filing a line that names someone is what makes them Known — the record, not
+    // the act of walking past them, is what puts a person in the Warden's head
+    if (event.subject) this.filedNames.add(event.subject);
       this.record.append(line);
       auto.push(line);
       this.bus.emit('desk:auto_filed', { event_ref: event.ref });
