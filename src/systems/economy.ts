@@ -82,7 +82,7 @@ export const DEBT_FLOOR = TUNING.economy.debt_floor;
  */
 export function insolvencyGap(t: Tuning = TUNING): { wage: number; bill: number; gap: number } {
   const bill = t.economy.rent + t.economy.food + t.economy.medicine;
-  return { wage: wage(1, t), bill, gap: bill - wage(1, t) };
+  return { wage: wage(1, false, t), bill, gap: bill - wage(1, false, t) };
 }
 
 /** No more than four lines by default; the hard cap lives in `tuning.json` so a mod or a
@@ -94,9 +94,10 @@ export const MAX_LINES = TUNING.economy.max_lines;
  * capped by the table's own ceiling (18 from the formula, 21 in the table — see the
  * contradiction note above).
  */
-export function wage(rank: number, t: Tuning = TUNING): number {
+export function wage(rank: number, quotaMet: boolean = false, t: Tuning = TUNING): number {
   const r = Math.max(1, Math.min(5, rank));
-  return Math.min(t.economy.wage_cap, t.economy.wage_base + r * t.economy.wage_per_rank);
+  const base = Math.min(t.economy.wage_cap, t.economy.wage_base + r * t.economy.wage_per_rank);
+  return base + (quotaMet ? t.economy.quota_bonus : 0);
 }
 
 /**
@@ -195,5 +196,7 @@ export function mayPromote(
 export function supplyPressure(result: LedgerResult): number {
   const shortfall = result.unpaid.reduce((a, l) => a + l.cost, 0);
   if (shortfall === 0) return -0.02; // paid: the street is fractionally calmer
-  return Math.min(0.12, shortfall / 600);
+  // The old divisor was 600, when the bill was 67. With the bill ~12, a shortfall of 3
+  // is a quarter of the family's survival, not a rounding error.
+  return Math.min(0.12, shortfall / 40);
 }

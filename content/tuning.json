@@ -1,20 +1,25 @@
 {
   "_note": "Every number that changes how the game feels, in one place (P4 entry criterion: 'all tuning parameters exposed in JSON with a single tuning.json'). Values are read at boot by src/core/tuning.ts, which is the only module allowed to hardcode a default. Change a number here, run `npm run campaign`, and compare: a tuning session that ends without a before/after pair is not a decision.",
-  "_status": "DRAFT — the economy block is deliberately un-reconciled. See docs/03-production/phases/05-phase-4-entry.md §4: SYS-ECON-01's wage (10-18 FP) and its nightly bill (67 FP) cannot both be right. The values below are the spec's own, not a balance pass.",
+  "_status": "Economy scale fixed (bill lowered to ~12 FP). Quota bonus implemented.",
   "version": 1,
-
   "economy": {
-    "rent": 30,
-    "food": 22,
-    "medicine": 15,
+    "rent": 6,
+    "food": 4,
+    "medicine": 2,
     "debt_floor": -60,
     "max_lines": 4,
     "wage_base": 8,
     "wage_per_rank": 2,
     "wage_cap": 21,
-    "promotion_thresholds": [10, 18, 28, 40, 55]
+    "promotion_thresholds": [
+      10,
+      18,
+      28,
+      40,
+      55
+    ],
+    "quota_bonus": 3
   },
-
   "district": {
     "turn_shifts": 3,
     "neighbour_share": 0.34,
@@ -28,7 +33,6 @@
       "faction": 0.15
     }
   },
-
   "recurrence": {
     "known_weight": 3.2,
     "available_weight": 1.8,
@@ -37,14 +41,12 @@
     "prefer_known": true,
     "known_cap": 12
   },
-
   "storylets": {
     "cards_first_shift": 2,
     "cards_per_shift": 1,
     "novelty_window": 6,
     "release_pressure_ceiling": 0.5
   },
-
   "scenes": {
     "air_between_cards_ms": 900,
     "delay_before_first_ms": 700,

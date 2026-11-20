@@ -163,7 +163,7 @@ The "a player who never lies can afford rent in Act I and *barely* in Act II (~3
 in Act II)" curve that `§8` asks for has no range to live in at these numbers — Act I is
 already impossible. This cannot be resolved in code; it is a design decision, and picking a
 number here would have hidden it behind a green test. `insolvencyGap()` and one test exist
-specifically to keep the contradiction visible until it is decided.
+specifically to keep the contradiction visible until it is decided. (Update: Solved via bill reduction + quota bonus, now wired into campaign runner).
 
 **Three candidate fixes, in the order I would argue for them:**
 

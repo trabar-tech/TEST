@@ -18,6 +18,7 @@
 
 import type { Directive, Storylet } from '@core/content';
 import { TUNING } from '@core/tuning';
+import { resolveLedger, wage, standardLines, supplyPressure } from './economy';
 import { streamFor } from '@core/rng';
 import { Simulation } from './shift';
 import { buildDeck } from './storylets';
@@ -248,6 +249,19 @@ export function runCampaign(opts: CampaignOptions): CampaignResult {
     }
     fault = opts.observe ? opts.observe(fault, audit) : fault;
     reviewsInARow = audit.review ? reviewsInARow + 1 : 0;
+
+    // the ledger: economy
+    const quotaMet = sim.inspectionsDone >= sim.quotaInspections;
+    const income = wage(sim.state.rank, quotaMet);
+    const ledger = resolveLedger({
+      income,
+      lines: standardLines({ medicine: true }),
+      priorBalance: sim.state.balance,
+    });
+    sim.state.balance = ledger.balance;
+    const pressure = supplyPressure(ledger);
+    sector.supply_deficit = Math.max(0, sector.supply_deficit + pressure);
+
 
     const claims: Record<string, number> = {};
     for (const line of sim.record.query({ shift: n })) {

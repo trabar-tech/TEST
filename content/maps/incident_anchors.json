@@ -31,6 +31,26 @@
       "address": "Canal market, south corner",
       "brief": "Ration cut at the depot this morning. Two hundred people, no permit, and one of the organisers is on the list.",
       "quota": 1
+    },
+    {
+      "id": "store4",
+      "label": "Grocer on Fourth",
+      "x": 20,
+      "y": 15,
+      "interior": "int_store",
+      "address": "Fourth Street grocer",
+      "brief": "Suspected contraband in the stockroom. Front door is locked, alley door barred.",
+      "quota": 1
+    },
+    {
+      "id": "tax_office",
+      "label": "Tax bureau branch office",
+      "x": 2,
+      "y": 8,
+      "interior": "int_office",
+      "address": "Sector 4 Tax Bureau",
+      "brief": "Silent alarm triggered at the branch office. Manager is unaccounted for.",
+      "quota": 1
     }
   ]
 }

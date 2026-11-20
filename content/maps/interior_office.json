@@ -1,0 +1,185 @@
+{
+  "id": "int_office",
+  "name": "Tax bureau branch office",
+  "tileSize": 32,
+  "width": 32,
+  "height": 20,
+  "rows": [
+    "################################",
+    "#..............................#",
+    "#.############################.#",
+    "#.##..........#...#.........##.#",
+    "#.##..........#...#.........##.#",
+    "#..#..........#...#.........##.#",
+    "#.##..........#...#.........##.#",
+    "#.##........................##.#",
+    "#.##..........#...#.........##.#",
+    "#.##..........#...#.........##.#",
+    "#.##..........#...#.........##.#",
+    "#.##############.#############.#",
+    "#.##........................##.#",
+    "#.##........................##.#",
+    "#.##........................##.#",
+    "#.##........................##.#",
+    "#.##........................##.#",
+    "#.##############.#############.#",
+    "#..............................#",
+    "################################"
+  ],
+  "legend": {
+    ".": "floor",
+    "#": "wall",
+    "+": "doorway"
+  },
+  "entry_points": [
+    {
+      "id": "front",
+      "label": "front doors",
+      "x": 16,
+      "y": 18
+    },
+    {
+      "id": "fire_escape",
+      "label": "fire escape",
+      "x": 4,
+      "y": 5
+    }
+  ],
+  "rooms": [
+    {
+      "id": "lobby",
+      "label": "reception",
+      "x": 4,
+      "y": 12,
+      "w": 24,
+      "h": 5,
+      "doors": [
+        "d_front",
+        "d_hall"
+      ]
+    },
+    {
+      "id": "hall",
+      "label": "central hall",
+      "x": 15,
+      "y": 3,
+      "w": 3,
+      "h": 8,
+      "doors": [
+        "d_hall",
+        "d_manager",
+        "d_break"
+      ]
+    },
+    {
+      "id": "manager",
+      "label": "manager's office",
+      "x": 4,
+      "y": 3,
+      "w": 10,
+      "h": 8,
+      "doors": [
+        "d_manager",
+        "d_fire"
+      ]
+    },
+    {
+      "id": "break",
+      "label": "break room",
+      "x": 19,
+      "y": 3,
+      "w": 9,
+      "h": 8,
+      "doors": [
+        "d_break"
+      ]
+    }
+  ],
+  "doors": [
+    {
+      "id": "d_front",
+      "x": 16,
+      "y": 17,
+      "state": "closed",
+      "rooms": [
+        "lobby"
+      ],
+      "appearance": "glass"
+    },
+    {
+      "id": "d_hall",
+      "x": 16,
+      "y": 11,
+      "state": "closed",
+      "rooms": [
+        "lobby",
+        "hall"
+      ],
+      "appearance": "glass"
+    },
+    {
+      "id": "d_manager",
+      "x": 14,
+      "y": 7,
+      "state": "locked",
+      "rooms": [
+        "hall",
+        "manager"
+      ],
+      "appearance": "plain"
+    },
+    {
+      "id": "d_break",
+      "x": 18,
+      "y": 7,
+      "state": "closed",
+      "rooms": [
+        "hall",
+        "break"
+      ],
+      "appearance": "plain"
+    },
+    {
+      "id": "d_fire",
+      "x": 2,
+      "y": 5,
+      "state": "barred",
+      "rooms": [
+        "manager"
+      ],
+      "appearance": "barred"
+    }
+  ],
+  "hostiles": [
+    {
+      "id": "h-01",
+      "archetype": "unarmed",
+      "post": [
+        16,
+        14
+      ],
+      "room": "lobby",
+      "stationary": true
+    },
+    {
+      "id": "h-02",
+      "archetype": "armed",
+      "post": [
+        7,
+        5
+      ],
+      "room": "manager",
+      "stationary": true
+    }
+  ],
+  "cameras": [
+    {
+      "id": "cam:lobby",
+      "label": "lobby",
+      "x": 16,
+      "y": 12,
+      "w": 6,
+      "h": 3
+    }
+  ]
+}

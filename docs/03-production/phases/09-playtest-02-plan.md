@@ -61,7 +61,7 @@ it interesting.
 |---|---|---|
 | 1 | Full-screen incident with a following camera | **Done** |
 | 2 | Make the tactical layer dangerous (injury, not death) | **Done, first pass** |
-| 3 | A second and third interior | Outstanding |
+| 3 | A second and third interior | **Done** |
 | 4 | Enemy behaviour — cover, call-outs, surrender | Outstanding (the shallow half of step 2) |
 | 5 | Content volume | Outstanding |
 

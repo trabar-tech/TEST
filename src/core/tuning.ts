@@ -31,6 +31,7 @@ export interface Tuning {
     wage_base: number;
     wage_per_rank: number;
     wage_cap: number;
+    quota_bonus: number;
     promotion_thresholds: number[];
   };
   district: {

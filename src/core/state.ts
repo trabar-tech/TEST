@@ -37,6 +37,10 @@ export interface GameState {
   /** campaign seed: all randomness derives from this */
   seed: number;
   shift: number;
+  /** Warden's rank (1-5). Dictates wage. */
+  rank: number;
+  /** Warden's current personal economy balance (FP). */
+  balance: number;
   tick: TickState;
   player: PlayerState;
   world: WorldSnapshot;
@@ -57,6 +61,8 @@ export function emptyState(seed: number): GameState {
   return {
     seed,
     shift: 1,
+    rank: 1,
+    balance: 0,
     tick: { tick: 0, simSeconds: 0, mode: 'patrol' },
     player: { entityId: null, shiftSeconds: 0 },
     world: { nextId: 1, entities: [] },
