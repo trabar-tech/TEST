@@ -688,6 +688,12 @@ async function start(): Promise<void> {
     const result = incident.result();
     const address = flat14?.address ?? 'Block C, flat fourteen';
     sim.incidentResult = result;
+    if (result.wardenDown) {
+      // Not a game over. The shift continues and the *record* carries the cost: a room-claims
+      // sheet full of things nobody finished, filed by an officer who was carried out. Playtest
+      // 2 asked for a shooter; a shooter with no way to lose the scene is a corridor tour.
+      hud.radio('Warden is down. Backup is on the way — the report is already yours.');
+    }
     sim.addIncident(result, {
       ref: `int-${sim.state.shift}-${sim.docket.length + 1}`,
       address,

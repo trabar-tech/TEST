@@ -58,26 +58,49 @@ export function createIncidentView(
   cb: IncidentCallbacks,
   opts: { address: string },
 ): IncidentHandle {
+  /**
+   * Full-screen, camera-followed (playtest 2).
+   *
+   * It used to be three columns with a 460px map in the middle — a document with a diagram in
+   * it, which is the wrong frame for a shooter. Now the map *is* the screen and the paperwork
+   * is a HUD strip: you are in the building, and the form is what you do afterwards.
+   *
+   * The old panel reading was not wrong, it was for a different game. `createPlan(..., 460)`
+   * still exists for the panel mode, so nothing that depended on it breaks.
+   */
   const root = el(
     'div',
-    'position:absolute;inset:0;display:flex;gap:0;background:rgba(4,6,8,.94);z-index:18;font:11px ui-monospace,monospace',
+    'position:absolute;inset:0;display:flex;flex-direction:column;background:#07090b;z-index:18;font:11px ui-monospace,monospace',
   );
 
-  const left = el('div', `width:216px;flex:none;border-right:1px solid rgba(120,140,160,.18);padding:14px;overflow:auto`);
-  const middle = el('div', 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:14px;overflow:auto;gap:10px');
-  const right = el('div', `width:238px;flex:none;border-left:1px solid rgba(120,140,160,.18);padding:14px;overflow:auto`);
-
-  const header = el('div', 'display:flex;align-items:baseline;justify-content:space-between;width:100%');
-  header.append(
-    el('div', `font:9.5px ${FONT_MONO};letter-spacing:.2em;color:${C.dim}`, 'INCIDENT · SECTOR 4'),
+  const topBar = el(
+    'div',
+    'display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:8px 14px;border-bottom:1px solid rgba(120,140,160,.16);flex:none',
+  );
+  const health = el('div', `font:10px ${FONT_MONO};letter-spacing:.14em;color:${C.green}`, '● ● ●');
+  topBar.append(
+    el('div', `font:9.5px ${FONT_MONO};letter-spacing:.22em;color:${C.dim}`, 'INCIDENT · SECTOR 4'),
     el('div', `font:9.5px ${FONT_MONO};color:${C.dim}`, opts.address),
+    health,
   );
-  middle.append(header);
 
-  const planHolder = el('div', 'display:flex;justify-content:center;width:100%;position:relative');
-  const plan = createPlan(inc, 460);
+  const planHolder = el('div', 'position:relative;flex:1;min-height:0;overflow:hidden');
+  const plan = createPlan(inc, 460, { camera: true, zoom: 26 });
+  plan.canvas.style.width = '100%';
   planHolder.append(plan.canvas);
-  middle.append(planHolder);
+
+  // the HUD strip: what used to be the right column, kept because the numbers are the point
+  const hudStrip = el(
+    'div',
+    'display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:6px 14px;border-top:1px solid rgba(120,140,160,.16);flex:none;min-height:30px',
+  );
+
+  const actions = el(
+    'div',
+    'display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 14px;border-top:1px solid rgba(120,140,160,.16);flex:none',
+  );
+
+  root.append(topBar, planHolder, hudStrip, actions);
 
   /**
    * Direct control (playtest 2: "a tactical shooter with bureaucracy sim").
@@ -138,12 +161,8 @@ export function createIncidentView(
   window.addEventListener('keyup', onKeyUp);
   window.addEventListener('blur', onBlur);
 
-  const toWorld = (e: MouseEvent): { x: number; y: number } => {
-    const rect = plan.canvas.getBoundingClientRect();
-    const scaleX = (inc.map.width * inc.map.tileSize) / (rect.width || 1);
-    const scaleY = (inc.map.height * inc.map.tileSize) / (rect.height || 1);
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
-  };
+  // the renderer owns the camera, so it owns the inverse projection too
+  const toWorld = (e: MouseEvent): { x: number; y: number } => plan.screenToWorld(e.clientX, e.clientY);
 
   plan.canvas.addEventListener('pointermove', (e) => {
     if (inc.hasSquad) return;
@@ -165,10 +184,30 @@ export function createIncidentView(
     }
   });
 
-  const footer = el('div', `display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;margin-top:2px`);
-  middle.append(footer);
+  // the entry options and the subjects are still needed, but they are not the frame: they
+  // live in a drawer over the map that opens on demand (Tab) and closes on Escape
+  const drawer = el(
+    'div',
+    'position:absolute;inset:0;display:none;grid-template-columns:minmax(200px,260px) minmax(220px,300px);' +
+      'justify-content:space-between;gap:0;pointer-events:none;z-index:2',
+  );
+  const left = el(
+    'div',
+    `pointer-events:auto;background:rgba(9,12,15,.94);border-right:1px solid rgba(120,140,160,.18);padding:14px;overflow:auto`,
+  );
+  const right = el(
+    'div',
+    `pointer-events:auto;background:rgba(9,12,15,.94);border-left:1px solid rgba(120,140,160,.18);padding:14px;overflow:auto`,
+  );
+  drawer.append(left, el('div', ''), right);
+  planHolder.append(drawer);
 
-  root.append(left, middle, right);
+  let drawerOpen = false;
+  const setDrawer = (open: boolean): void => {
+    drawerOpen = open;
+    drawer.style.display = open ? 'grid' : 'none';
+  };
+
   host.append(root);
 
   // -------------------------------------------------------------- left: entry
@@ -229,28 +268,40 @@ export function createIncidentView(
     return hit?.hint ?? 'no entrance';
   }
 
+  /** What the force continuum says, in three words rather than a table. */
+  function humanForce(inc: Incident): string {
+    const rung = Math.max(1, ...inc.forceUsed.map((f) => f.rung));
+    return ['', 'PRESENCE', 'HANDS ON', 'RESTRAINT', 'BATON', 'FIREARM'][rung] ?? 'PRESENCE';
+  }
+
+  /** Three pips, so the player can read their own condition at a glance. */
+  function woundPips(inc: Incident): string {
+    const filled = Math.max(0, inc.wardenHealth);
+    return `${'● '.repeat(filled)}${'○ '.repeat(3 - filled)}`.trim();
+  }
+
   // ------------------------------------------------------------ middle: actions
   function renderMiddle(): void {
     plan.draw();
 
-    footer.replaceChildren();
+    actions.replaceChildren();
     const verbs: OrderKind[] = inc.hasSquad ? ['stack', 'breach', 'clear', 'hold', 'move', 'detain', 'regroup'] : [...SOLO_ORDERS];
     for (const v of verbs) {
-      footer.append(
+      actions.append(
         button(v.toUpperCase(), () => cb.onOrder(v), {
           style:
             'padding:5px 9px;font:9.5px ui-monospace,monospace;letter-spacing:.1em;color:#c9d3dd;background:#151a1f;border:1px solid rgba(120,140,160,.3);border-radius:2px;cursor:pointer',
         }),
       );
     }
-    footer.append(
+    actions.append(
       button('END THE INCIDENT', () => cb.onEnd(), {
         style:
           'padding:5px 9px;font:9.5px ui-monospace,monospace;letter-spacing:.1em;color:#0d1013;background:#d8b06a;border:1px solid #d8b06a;border-radius:2px;cursor:pointer;font-weight:600',
       }),
     );
 
-    const comms = el('div', `width:100%;max-width:420px;display:flex;flex-direction:column;gap:2px;margin-top:2px`);
+    const comms = el('div', `display:flex;flex-direction:column;gap:2px;margin-left:auto;max-width:340px`);
     if (inc.squad) {
       for (const s of inc.squad.snapshot(inc.simSeconds)) {
         const row = el('div', `display:flex;align-items:center;gap:6px`);
@@ -282,7 +333,18 @@ export function createIncidentView(
         el('div', `font:9.5px ${FONT_MONO};color:${C.dim}`, `NO SQUAD · FOCUS ${(inc.focusStamina * 100).toFixed(0)}%`),
       );
     }
-    footer.append(comms);
+    actions.append(comms);
+
+    // the HUD strip: what the right column used to say, in one line
+    hudStrip.replaceChildren(
+      el('div', `font:9.5px ${FONT_MONO};color:${C.dim}`, `FORCE ${humanForce(inc)}`),
+      el('div', `font:9.5px ${FONT_MONO};color:${inc.unauthorisedForce ? C.red : C.dim}`, inc.unauthorisedForce ? 'NO AUTHORISATION' : 'AUTHORISED'),
+      el('div', `font:9.5px ${FONT_MONO};color:${C.dim}`, `DETAINED ${inc.detainees} · CASUALTIES ${inc.casualties}`),
+      el('div', `font:9.5px ${FONT_MONO};color:${C.faint}`, 'TAB · entry + subjects   ESC · close'),
+    );
+
+    health.textContent = woundPips(inc);
+    health.style.color = inc.wardenHealth > 1 ? C.green : C.red;
   }
 
   // ---------------------------------------------------------- right: the form
@@ -361,6 +423,38 @@ export function createIncidentView(
     renderRight();
   }
 
+  /**
+   * Tab opens the drawer, Escape closes it. Discoverable because the HUD strip says so —
+   * playtest 1 never found the tactical layer at all, and an undocumented verb is the same
+   * mistake one level down.
+   */
+  const onDrawerKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      setDrawer(!drawerOpen);
+    } else if (e.key === 'Escape' && drawerOpen) {
+      e.preventDefault();
+      setDrawer(false);
+    }
+  };
+  window.addEventListener('keydown', onDrawerKey);
+
+  /**
+   * The camera canvas has to be told its box, because it no longer derives its height from the
+   * map. Observe the holder rather than `window` so sidebars or a browser chrome change are
+   * both covered.
+   */
+  const fit = (): void => {
+    const w = planHolder.clientWidth || 460;
+    const h = planHolder.clientHeight || Math.round(window.innerHeight * 0.72);
+    plan.resize(w, h);
+    plan.draw();
+  };
+  const observer =
+    typeof ResizeObserver === 'function' ? new ResizeObserver(() => fit()) : null;
+  observer?.observe(planHolder);
+  queueMicrotask(fit);
+
   render();
   return {
     root,
@@ -369,6 +463,8 @@ export function createIncidentView(
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
+      window.removeEventListener('keydown', onDrawerKey);
+      observer?.disconnect();
       keys.clear();
       inc.setMoveIntent(null);
       root.remove();

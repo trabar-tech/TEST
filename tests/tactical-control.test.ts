@@ -162,3 +162,82 @@ describe('a shot is a fact, not a reflex check', () => {
     expect(inc.fire().fired).toBe(false);
   });
 });
+
+/**
+ * Being shot at (playtest 2, step 2).
+ *
+ * Playtest 1 asked for a shooter and got one, but the body in it could not be hurt: `soloHits`
+ * was counted and then ignored, so nothing in the tactical layer could go wrong. Injury is now
+ * the failure state, on purpose — the punishment for a bad scene is the *paperwork* it
+ * generates, not a game-over screen.
+ */
+describe('the Warden can be hurt, and being hurt costs something', () => {
+  it('starts at full, and three hits put them down', () => {
+    const inc = solo();
+    expect(inc.wardenHealth).toBe(3);
+    expect(inc.wardenDown).toBe(false);
+    expect(inc.takeHit()).toBe(false);
+    expect(inc.takeHit()).toBe(false);
+    expect(inc.takeHit()).toBe(true);
+    expect(inc.wardenDown).toBe(true);
+    expect(inc.wardenHealth).toBe(0);
+  });
+
+  it('a hit is loud: whoever is in the building hears the Warden shout', () => {
+    const inc = solo();
+    const before = inc.noises.length;
+    inc.takeHit();
+    expect(inc.noises.length).toBe(before + 1);
+    expect(inc.noises.at(-1)?.source).toBe('shout');
+  });
+
+  it('wounds slow the body — an injured Warden is not a reskin of a healthy one', () => {
+    const walk = (inc: Incident): number => {
+      const start = inc.warden.x;
+      inc.setMoveIntent({ x: 1, y: 0 });
+      for (let i = 0; i < 20; i++) inc.step(1 / 60);
+      return Math.abs(inc.warden.x - start);
+    };
+    const healthy = walk(solo());
+    const hurt = solo();
+    hurt.takeHit();
+    hurt.takeHit();
+    expect(walk(hurt)).toBeLessThan(healthy);
+  });
+
+  it('a downed Warden cannot fire, and cannot be hurt further', () => {
+    const inc = solo();
+    for (let i = 0; i < 3; i++) inc.takeHit();
+    expect(inc.fire()).toMatchObject({ fired: false, reason: 'you are down' });
+    expect(inc.takeHit()).toBe(false);
+    expect(inc.soloHits).toBe(3);
+  });
+
+  it('being down is carried into the result, because the record is the consequence', () => {
+    const inc = solo();
+    for (let i = 0; i < 3; i++) inc.takeHit();
+    const result = inc.result();
+    expect(result.wardenDown).toBe(true);
+    expect(result.soloHits).toBe(3);
+  });
+
+  it('the wound readout is 0 at full health and approaches 1 as hits land', () => {
+    const inc = solo();
+    expect(inc.wardenWound).toBe(0);
+    inc.takeHit();
+    expect(inc.wardenWound).toBeGreaterThan(0);
+    expect(inc.wardenWound).toBeLessThan(1);
+  });
+});
+
+describe('a downed Warden ends the scene', () => {
+  it('the incident stops stepping once the Warden is down', () => {
+    const inc = solo();
+    for (let i = 0; i < 3; i++) inc.takeHit();
+    const t = inc.tick;
+    inc.step(1 / 60);
+    inc.step(1 / 60);
+    expect(inc.tick).toBe(t);
+    expect(inc['ended']).toBe(true);
+  });
+});

@@ -32,11 +32,34 @@ export interface PlanHandle {
   /** repaint from the current incident state */
   draw(): void;
   readonly canvas: HTMLCanvasElement;
-  resize(cssWidth: number): void;
+  resize(cssWidth: number, cssHeight?: number): void;
+  /**
+   * Pointer → world.
+   *
+   * Lives here rather than in the view because only the renderer knows the camera. The view
+   * used to assume "the whole map fits the canvas", which stops being true the moment the
+   * camera exists — aiming would silently point at the wrong wall.
+   */
+  screenToWorld(clientX: number, clientY: number): { x: number; y: number };
   destroy(): void;
 }
 
-export function createPlan(inc: Incident, cssWidth = 440): PlanHandle {
+export interface PlanOptions {
+  /**
+   * Full-screen mode: the canvas fills its box and the camera follows the Warden at a fixed
+   * zoom, clamped to the building.
+   *
+   * The panel mode (the default) squeezes the whole floor into 440px, which is right for a
+   * document and wrong for a shooter — you cannot aim at something you need a magnifier to
+   * see. Playtest 2 named the gap; this is the switch between the two readings of the same
+   * map, not a second renderer.
+   */
+  camera?: boolean;
+  /** pixels per tile in camera mode (24 is a comfortable corridor width) */
+  zoom?: number;
+}
+
+export function createPlan(inc: Incident, cssWidth = 440, opts: PlanOptions = {}): PlanHandle {
   const canvas = document.createElement('canvas');
   canvas.style.display = 'block';
   canvas.style.width = '100%';
@@ -47,15 +70,55 @@ export function createPlan(inc: Incident, cssWidth = 440): PlanHandle {
   const map = inc.map;
   let width = cssWidth;
 
-  function resize(next: number): void {
+  let height = 0;
+
+  function resize(next: number, nextHeight?: number): void {
     width = next;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (opts.camera) {
+      height = nextHeight ?? Math.round(window.innerHeight * 0.72);
+      canvas.style.height = `${height}px`;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      return;
+    }
     const scale = width / (map.width * map.tileSize);
     const cssHeight = map.height * map.tileSize * scale;
     canvas.style.height = `${cssHeight}px`;
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(cssHeight * dpr);
     ctx?.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+  }
+
+  /** Camera centre in world units, clamped so the building never leaves the screen. */
+  function cameraCentre(): { x: number; y: number } {
+    const zoom = opts.zoom ?? 24;
+    const viewW = width / zoom;
+    const viewH = height / zoom;
+    const worldW = map.width * map.tileSize;
+    const worldH = map.height * map.tileSize;
+    const clampAxis = (c: number, view: number, world: number): number =>
+      view >= world ? world / 2 : Math.min(world - view / 2, Math.max(view / 2, c));
+    return {
+      x: clampAxis(inc.warden.x, viewW, worldW),
+      y: clampAxis(inc.warden.y, viewH, worldH),
+    };
+  }
+
+  function screenToWorld(clientX: number, clientY: number): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    if (opts.camera) {
+      const zoom = opts.zoom ?? 24;
+      const c = cameraCentre();
+      return {
+        x: c.x + (clientX - rect.left - rect.width / 2) / zoom,
+        y: c.y + (clientY - rect.top - rect.height / 2) / zoom,
+      };
+    }
+    const w = rect.width || width;
+    const scaleX = (map.width * map.tileSize) / w;
+    const scaleY = (map.height * map.tileSize) / (rect.height || 1);
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
   }
 
   function draw(): void {
@@ -65,9 +128,24 @@ export function createPlan(inc: Incident, cssWidth = 440): PlanHandle {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const scale = width / (map.width * map.tileSize);
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
-    ctx.clearRect(0, 0, map.width * t, map.height * t);
+    if (opts.camera) {
+      const zoom = opts.zoom ?? 24;
+      const c = cameraCentre();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.setTransform(
+        dpr * zoom,
+        0,
+        0,
+        dpr * zoom,
+        dpr * (width / 2 - c.x * zoom),
+        dpr * (height / 2 - c.y * zoom),
+      );
+    } else {
+      const scale = width / (map.width * map.tileSize);
+      ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+      ctx.clearRect(0, 0, map.width * t, map.height * t);
+    }
 
     // floor pass, room by room, so the silhouette rule lives in one place
     for (const room of inc.json.rooms) {
@@ -143,7 +221,11 @@ export function createPlan(inc: Incident, cssWidth = 440): PlanHandle {
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(inc.warden.x, inc.warden.y);
-      ctx.lineTo(inc.warden.x + Math.cos(inc.aim) * t * 3.2, inc.warden.y + Math.sin(inc.aim) * t * 3.2);
+      // an injured Warden's hands shake: the line wobbles more with every hit, so the player
+      // can see the cost of a wound rather than read it off a pip
+      const shake = inc.wardenWound * 0.16 * Math.sin(inc.simSeconds * 11);
+      const aimAt = inc.aim + shake;
+      ctx.lineTo(inc.warden.x + Math.cos(aimAt) * t * 3.2, inc.warden.y + Math.sin(aimAt) * t * 3.2);
       ctx.stroke();
     }
     ctx.fillStyle = GOLD;
@@ -184,7 +266,7 @@ export function createPlan(inc: Incident, cssWidth = 440): PlanHandle {
 
   resize(cssWidth);
   draw();
-  return { canvas, draw, resize, destroy: () => canvas.remove() };
+  return { canvas, draw, resize, screenToWorld, destroy: () => canvas.remove() };
 }
 
 /** The crowd's ground ring, in world units, for whichever renderer wants it. */

@@ -99,6 +99,14 @@ export interface IncidentResult {
   unfound: string[];
   /** times the Warden was hit, solo only; 0 with a squad */
   soloHits: number;
+  /**
+   * True when the Warden was put down during the scene.
+   *
+   * Carried as a fact because the *paperwork* is the consequence: a downed officer's shift
+   * ends with rooms nobody finished and a report somebody else will write. Reading it in the
+   * docket is how the tactical layer stays connected to the desk instead of to a game-over.
+   */
+  wardenDown: boolean;
   ticksElapsed: number;
 }
 
@@ -147,6 +155,56 @@ export class Incident {
   unauthorisedForce = false;
   /** solo: the Warden's own position, focus state, and exposure to return fire */
   soloHits = 0;
+
+  /**
+   * What being shot does (playtest 2: "a tactical shooter").
+   *
+   * The design question this answers: a game about a bureaucracy punishing you does not want
+   * *death* as the failure state — the record is. But a tactical layer where nothing can hurt
+   * you has no tension at all. So injury is the currency:
+   *
+   *  - a hit **slows** the Warden and **degrades the aim line** (a shake, drawn, not simulated),
+   *  - three hits **put the Warden down**, which ends the incident early and hands the desk a
+   *    room-claims record full of things nobody finished checking,
+   *  - being downed is *not* a game over: it is one of the most expensive paperwork situations
+   *    in the game, which is the right punishment for this fiction.
+   */
+  wardenHealth = 3;
+  /** 0–1, drives the aim shake the renderer draws and the speed penalty below */
+  get wardenWound(): number {
+    return 1 - this.wardenHealth / Incident.WARDEN_MAX_HEALTH;
+  }
+
+  static readonly WARDEN_MAX_HEALTH = 3;
+  /** a wounded Warden moves this much slower per lost hit */
+  static readonly WOUND_SLOW = 0.12;
+
+  /** True once the Warden is down: the scene can no longer be played, only ended. */
+  get wardenDown(): boolean {
+    return this.wardenHealth <= 0;
+  }
+
+  /**
+   * Take a hit.
+   *
+   * Separated from `stepSolo` so the cadence logic stays readable and so a test can wound the
+   * Warden without arranging a firefight. Returns true on the hit that puts them down.
+   */
+  takeHit(): boolean {
+    if (this.wardenHealth <= 0) return false;
+    this.wardenHealth -= 1;
+    this.soloHits += 1;
+    // a wound is loud: the Warden shouting is a noise event like any other
+    this.noises.push({ source: 'shout', at: { ...this.warden }, radius: 8, walls: 2, tick: this.tick });
+    if (this.wardenHealth <= 0) {
+      this.wardenDownAt = this.simSeconds;
+      this.moveIntent = null;
+      return true;
+    }
+    return false;
+  }
+
+  wardenDownAt: number | null = null;
   /**
    * Counts down to the next shot *from the moment there is a threat*, so the
    * first reaction is the cadence itself rather than an infinite grace period.
@@ -487,6 +545,7 @@ export class Incident {
    */
   fire(): { fired: boolean; hit: string | null; reason?: string } {
     if (this.ended) return { fired: false, hit: null, reason: 'the incident is over' };
+    if (this.wardenDown) return { fired: false, hit: null, reason: 'you are down' };
     if (this.fireCooldown > 0) return { fired: false, hit: null, reason: 'the weapon is empty' };
     this.fireCooldown = Incident.FIRE_COOLDOWN;
 
@@ -556,6 +615,12 @@ export class Incident {
 
   step(dt: number): void {
     if (this.ended) return;
+    // A downed Warden ends the scene. Not a game-over — the incident closes with whatever was
+    // and was not finished, and the desk inherits the mess (`result().wardenDown` says so).
+    if (this.wardenDown) {
+      this.ended = true;
+      return;
+    }
     // Focus slows the world, not the player's hands: same sim-metres per
     // sim-second, 2.9× more real time to decide in.
     const worldDt = this.focusActive ? dt * Incident.FOCUS_TIMESCALE : dt;
@@ -601,8 +666,9 @@ export class Incident {
     this.fireCooldown = Math.max(0, this.fireCooldown - dt);
 
     // direct control first: a held direction wins over a queued route
-    if (this.moveIntent) {
-      const speed = Incident.SOLO_SPEED * this.map.tileSize * dt;
+    if (this.moveIntent && !this.wardenDown) {
+      const speed =
+        Incident.SOLO_SPEED * (1 - this.wardenWound * Incident.WOUND_SLOW) * this.map.tileSize * dt;
       const nx = this.warden.x + this.moveIntent.x * speed;
       const ny = this.warden.y + this.moveIntent.y * speed;
       const tile = this.map.toTile({ x: nx, y: ny });
@@ -630,7 +696,7 @@ export class Incident {
     if (armed.length > 0) {
       this.soloSecondsToHit -= dt;
       if (this.soloSecondsToHit <= 0) {
-        this.soloHits += 1;
+        this.takeHit();
         this.soloSecondsToHit = Incident.SOLO_HIT_SECONDS;
         this.noises.push({
           source: 'shot',
@@ -708,6 +774,7 @@ export class Incident {
       unfound,
       ticksElapsed: this.tick,
       soloHits: this.soloHits,
+      wardenDown: this.wardenDown,
     };
   }
 

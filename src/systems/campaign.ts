@@ -311,6 +311,7 @@ function quietRaid() {
     stabilised: [],
     unfound: [],
     soloHits: 0,
+    wardenDown: false,
     ticksElapsed: 40,
   };
 }

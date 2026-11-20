@@ -54,10 +54,11 @@ quiet night, the paperwork that protects you before it convicts you.
 ```bash
 npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
-                   # F enters the flat (WASD walk · mouse aim · click fire),
+                   # F enters the flat full-screen: WASD walk · mouse aim · click fire,
+                   # Tab entry + subjects drawer · three hits and you are down,
                    # E opens the desk early, C opens the case file,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 741 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 748 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 npm run campaign   # headless 15-shift campaign: 4 policies x N seeds, one line per run
