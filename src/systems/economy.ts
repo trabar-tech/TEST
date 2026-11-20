@@ -1,3 +1,5 @@
+import { TUNING, type Tuning } from '@core/tuning';
+
 /**
  * The household ledger (P4-T02, first half): *the job should cost rent.*
  *
@@ -51,8 +53,8 @@ export interface LedgerResult {
   summary: string;
 }
 
-/** The spec's debt floor. Not a fail state: a scene. */
-export const DEBT_FLOOR = -60;
+/** The spec's debt floor, from `tuning.json`. Not a fail state: a scene. */
+export const DEBT_FLOOR = TUNING.economy.debt_floor;
 
 /**
  * **OPEN DESIGN QUESTION — the wage table and the ledger cannot both be right.**
@@ -78,23 +80,23 @@ export const DEBT_FLOOR = -60;
  * number here would hide it. The ledger is therefore built and tested but **not yet wired
  * into the campaign loop**; see `05-phase-4-entry.md` §5 for the three candidate fixes.
  */
-export function insolvencyGap(): { wage: number; bill: number; gap: number } {
-  const bill = RENT + FOOD + MEDICINE;
-  return { wage: wage(1), bill, gap: bill - wage(1) };
+export function insolvencyGap(t: Tuning = TUNING): { wage: number; bill: number; gap: number } {
+  const bill = t.economy.rent + t.economy.food + t.economy.medicine;
+  return { wage: wage(1, t), bill, gap: bill - wage(1, t) };
 }
 
-/** No more than four lines. Enforced, not documented. */
-export const MAX_LINES = 4;
-
-export const RENT = 30;
-export const FOOD = 22;
-export const MEDICINE = 15;
+/** No more than four lines by default; the hard cap lives in `tuning.json` so a mod or a
+ *  what-if can move it — but the *rule* (`resolveLedger` refuses more) does not move. */
+export const MAX_LINES = TUNING.economy.max_lines;
 
 /**
- * Wage by rank tier (`SYS-ECON-01` §3): 8 + rank × 2 for the five ranks.
+ * Wage by rank tier (`SYS-ECON-01` §3), read from `tuning.json`: base + rank × per-rank,
+ * capped by the table's own ceiling (18 from the formula, 21 in the table — see the
+ * contradiction note above).
  */
-export function wage(rank: number): number {
-  return 8 + Math.max(1, Math.min(5, rank)) * 2;
+export function wage(rank: number, t: Tuning = TUNING): number {
+  const r = Math.max(1, Math.min(5, rank));
+  return Math.min(t.economy.wage_cap, t.economy.wage_base + r * t.economy.wage_per_rank);
 }
 
 /**
@@ -104,14 +106,17 @@ export function wage(rank: number): number {
  * make rent does not buy medicine first — the fiction is that the need is the thing you
  * drop, and the ledger has to encode that or the choice is not real.
  */
-export function standardLines(opts: { medicine: boolean; need?: LedgerLine }): LedgerLine[] {
+export function standardLines(
+  opts: { medicine: boolean; need?: LedgerLine },
+  t: Tuning = TUNING,
+): LedgerLine[] {
   const lines: LedgerLine[] = [
-    { kind: 'rent', label: 'Rent', cost: RENT },
-    { kind: 'food', label: 'Food', cost: FOOD },
+    { kind: 'rent', label: 'Rent', cost: t.economy.rent },
+    { kind: 'food', label: 'Food', cost: t.economy.food },
   ];
-  if (opts.medicine) lines.push({ kind: 'medicine', label: 'Medicine', cost: MEDICINE });
+  if (opts.medicine) lines.push({ kind: 'medicine', label: 'Medicine', cost: t.economy.medicine });
   if (opts.need) lines.push(opts.need);
-  return lines.slice(0, MAX_LINES);
+  return lines.slice(0, t.economy.max_lines);
 }
 
 /**
@@ -121,9 +126,10 @@ export function standardLines(opts: { medicine: boolean; need?: LedgerLine }): L
  * the caller turns into content (notice served, family health down, the spouse's condition
  * worsening), which is why this returns the lines rather than just a number.
  */
-export function resolveLedger(opts: LedgerOptions): LedgerResult {
-  if (opts.lines.length > MAX_LINES) {
-    throw new Error(`the ledger is ${MAX_LINES} lines; refusing ${opts.lines.length}`);
+export function resolveLedger(opts: LedgerOptions, t: Tuning = TUNING): LedgerResult {
+  const cap = t.economy.max_lines;
+  if (opts.lines.length > cap) {
+    throw new Error(`the ledger is ${cap} lines; refusing ${opts.lines.length}`);
   }
   const owed = opts.lines.reduce((a, l) => a + l.cost, 0);
   const prior = opts.priorBalance ?? 0;
@@ -138,8 +144,9 @@ export function resolveLedger(opts: LedgerOptions): LedgerResult {
   }
 
   const raw = opts.income + prior - owed;
-  const balance = Math.max(DEBT_FLOOR, raw);
-  const atFloor = balance <= DEBT_FLOOR && raw <= DEBT_FLOOR;
+  const floor = t.economy.debt_floor;
+  const balance = Math.max(floor, raw);
+  const atFloor = balance <= floor && raw <= floor;
 
   return {
     income: opts.income,
@@ -168,13 +175,11 @@ function summarise(income: number, owed: number, unpaid: LedgerLine[], balance: 
  * Whether a rank may be promoted (`SYS-ECON-01` §3): enough standing, no recent reviews, and
  * one favourable audit. The economy owns the rule; the briefing owns the ceremony.
  */
-export function mayPromote(opts: {
-  standing: number;
-  tier: number;
-  reviewsInLast3: number;
-  favourableAudit: boolean;
-}): boolean {
-  const threshold = [10, 18, 28, 40, 55][Math.min(4, Math.max(0, opts.tier - 1))]!;
+export function mayPromote(
+  opts: { standing: number; tier: number; reviewsInLast3: number; favourableAudit: boolean },
+  t: Tuning = TUNING,
+): boolean {
+  const threshold = t.economy.promotion_thresholds[Math.min(4, Math.max(0, opts.tier - 1))]!;
   return opts.standing >= threshold && opts.reviewsInLast3 === 0 && opts.favourableAudit;
 }
 

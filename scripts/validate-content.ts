@@ -62,7 +62,19 @@ function warn(msg: string): void {
 /* ------------------------------------------------------------------ content */
 
 console.log('content');
-const contentFiles = walk(join(ROOT, 'content'), '.json');
+
+/**
+ * `tuning.json` lives under `content/` so it ships with the bundle, but it is *configuration*,
+ * not authored content: it has no storylets, so a connective-tissue ratio is meaningless and
+ * checking it produced "0.00 is below the 0.40 budget" — a warning that trains people to
+ * ignore warnings. It is validated by `src/core/tuning.ts` (`checkTuning`) and by
+ * `tests/tuning.test.ts` instead, with messages that name the field.
+ */
+const NOT_CONTENT = new Set(['tuning.json']);
+
+const contentFiles = walk(join(ROOT, 'content'), '.json').filter(
+  (f) => !NOT_CONTENT.has(relative(join(ROOT, 'content'), f)),
+);
 if (contentFiles.length === 0) fail('no content files found');
 
 const loaded: LoadedContent[] = [];

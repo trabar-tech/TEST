@@ -19,6 +19,7 @@
  *     night heats it, which is why the place gets worse rather than merely noisy.
  */
 
+import { TUNING } from '@core/tuning';
 import type { Classification } from '@core/record';
 import type { Household, SectorState } from './households';
 
@@ -43,7 +44,7 @@ export const REACTIONS: Record<Classification, number> = {
 };
 
 /** A neighbour's share of the same event. Enough to feel, not enough to flood. */
-export const NEIGHBOUR_SHARE = 0.34;
+export const NEIGHBOUR_SHARE = TUNING.district.neighbour_share;
 
 export interface FiledAct {
   household_id: string;
@@ -153,26 +154,38 @@ export interface Hardening {
  * neighbour share: six households became available in one night, from one line. The
  * campaign runner found it in the first hour of its life, which is exactly what it is for.
  */
-export const TURN_SHIFTS = 3;
+/**
+ * How many consecutive angry nights it takes. A function rather than a constant because the
+ * sweep has to be able to move it: a value captured at import cannot be tuned, and a dial
+ * that cannot be moved is decoration.
+ */
+export function turnShifts(): number {
+  return TUNING.district.turn_shifts;
+}
 
 export function harden(household: Household): Hardening {
   const angryNights = household.flags.filter((f) => f === 'angry').length;
+  const turn = TUNING.district.turn_shifts;
 
-  if (household.grievance >= 0.7 && !household.flags.includes('available')) {
+  if (household.grievance >= TUNING.district.available_threshold && !household.flags.includes('available')) {
     // below the turn: record the night and wait. A household that cools off loses the
     // streak entirely, so grievance has to be *sustained* to become a state.
-    if (angryNights + 1 < TURN_SHIFTS) {
+    if (angryNights + 1 < turn) {
       return { household: { ...household, flags: [...household.flags, 'angry'] }, became: null };
     }
     return { household: { ...household, flags: [...household.flags, 'available'] }, became: 'available' };
   }
 
-  if (household.grievance <= 0.12 && household.loyalty > 0.7 && !household.flags.includes('informant')) {
+  if (
+    household.grievance <= TUNING.district.informant_threshold &&
+    household.loyalty > 0.7 &&
+    !household.flags.includes('informant')
+  ) {
     return { household: { ...household, flags: [...household.flags, 'informant'] }, became: 'informant' };
   }
 
   // cooled off: the surveillance that was building evaporates
-  if (household.grievance < 0.7 && angryNights > 0) {
+  if (household.grievance < TUNING.district.available_threshold && angryNights > 0) {
     return { household: { ...household, flags: household.flags.filter((f) => f !== 'angry') }, became: null };
   }
 

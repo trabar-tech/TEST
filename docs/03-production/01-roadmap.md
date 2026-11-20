@@ -146,7 +146,10 @@ system.
 
 ## Phase 4 — Economy, family, campaign, endings (6–8 sessions)
 
-**Status: entry work in progress.** The headless campaign runner — Phase 4's own first entry
+**Status: entry work in progress.** Entry criteria: the campaign runner ✓, `tuning.json` ✓
+(`content/tuning.json` + `npm run sweep`), headless 15-shift play ✓. **G2 not run.**
+
+**Status (cont).** The headless campaign runner — Phase 4's own first entry
 criterion — exists (`npm run campaign`, `src/systems/campaign.ts`), shares the shift boundary
 with the browser, and has already falsified three assumptions; see
 [`phases/05-phase-4-entry.md`](phases/05-phase-4-entry.md). **G2 has not been run**, so the

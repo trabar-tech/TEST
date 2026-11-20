@@ -32,7 +32,8 @@ phase transition. Nothing here is a substitute for three human testers.
 | `advanceShift()` / `ordersForShift()` | `src/systems/shift-cycle.ts` | the browser and the runner call the *same* shift boundary |
 | `npm run campaign` | `scripts/campaign.ts` | a tuning change gets a before/after instead of a vibe |
 | Four policies | `POLICIES` | each is a legible player shape the design worries about |
-| 13 tests | `tests/campaign.test.ts` | determinism, divergence, and "the tool measures the game" |
+| 17 tests | `tests/campaign.test.ts` | determinism, divergence, and "the tool measures the game" |
+| `tuning.json` + `sweep` | `content/tuning.json`, `src/core/tuning.ts`, `scripts/sweep.ts` | 12 tests; one dial at a time, before/after instead of opinion |
 
 The critical design rule: **the runner must not re-implement the game.** `main.ts` used to
 own the shift boundary — age the record, clear the docket, advance the sector, decay
@@ -180,15 +181,55 @@ specifically to keep the contradiction visible until it is decided.
 solvent at all), then move surplus into quota performance, then sweep with `npm run campaign`
 looking for a ~30% Act II failure rate.
 
-## 5. What Phase 4 should do next
+## 5. One tuning surface, and the sweep that proved itself useless first
+
+`content/tuning.json` now holds every number that changes how the game feels: economy, district,
+recurrence, storylet counts, scene pacing. `src/core/tuning.ts` is the only module allowed to
+hold a default, validates loudly with field names, and freezes the result so a system cannot
+tune itself mid-shift. Systems read through `TUNING` (or take an optional `t` argument for
+what-ifs). `npm run sweep -- <block.dial> v1,v2,v3` reports a curve.
+
+**The first sweep was a lie.** It built a patched document per value, printed a header, and
+passed the patch nowhere: three different values produced one identical row, and it looked like
+a measurement. Fixed by making the patch reach the systems (`tune()`), plus a guard that exits
+non-zero if the dial did not take effect. *A tuning tool that silently does nothing is worse
+than no tool, because it produces confidence.*
+
+Two dials were then found not to be wired at all — `storylets.cards_per_shift` and
+`cards_first_shift` were hardcoded `2` and `1` in both `main.ts` and `campaign.ts`. Sweeping
+them did nothing until they read the document. This is the same duplication that made the
+ledger and the wage disagree: a constant in two callers is a constant that will diverge.
+
+### What the sweep now says, which is not reassuring
+
+```
+sweeping district.turn_shifts 1,3,5      → flat: 31.7 / 31.8 for every value
+sweeping district.available_threshold     → flat
+sweeping storylets.cards_per_shift 0,1,3  → 31.6 / 31.4 / 31.3  (moves, barely)
+```
+
+**Grievance is absorbing.** Once a household reaches `available` it never leaves: there is no
+path back down in the model. So the *number* of angry nights before the turn only shifts timing,
+and by shift 15 the outcome is identical. `turn_shifts` is therefore a dial with no range — the
+first one the project has.
+
+That is a design finding, not a bug to patch: an absorbing state is a legitimate choice for a
+regime simulator (the Cell recruits and does not un-recruit), but it means *the district has a
+one-way door and the campaign has no recovery loop.* If the intent is that a Warden can win
+back a block, the model needs a decay path from `available`; if the intent is that they cannot,
+then `turn_shifts` should be documented as timing-only and removed from any "difficulty" dial.
+
+## 6. What Phase 4 should do next
 
 1. ~~Move act-collection into `shift-cycle.ts`~~ — **done**: `collectActs()` is shared, with
    four tests that assert the ordering properties directly.
 2. **Reconcile the ledger's numbers** (§4) and then wire the economy into the campaign loop,
    which is what moves `supply_deficit` and `force_index`. §2d says this is the gate on
    temperature meaning anything at all.
-3. **Decide the known-cast question honestly** (§2c): six recurring households may be the
+3. **Decide whether `available` is absorbing** (§5). If it is, say so; if not, add the decay
+   path — otherwise the campaign has no recovery loop and `turn_shifts` is a dial with no range.
+4. **Decide the known-cast question honestly** (§2c): six recurring households may be the
    right design. If it is, write it down as a decision; if it is not, widening it is a
    content problem, not a systems one.
-4. **Then tune.** Not before: `npm run campaign` exists now, and a tuning session that ends
+5. **Then tune.** Not before: `npm run campaign` exists now, and a tuning session that ends
    without a before/after pair should not be recorded as a decision.

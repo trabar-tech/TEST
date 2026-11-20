@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { NEIGHBOUR_SHARE, REACTIONS, TURN_SHIFTS, harden, reactToFilings } from '@systems/household-reaction';
+import { NEIGHBOUR_SHARE, REACTIONS, harden, reactToFilings, turnShifts } from '@systems/household-reaction';
 import { generateSector, legitimacy, temperature, type SectorState } from '@systems/households';
 
 const sector = (over: Partial<SectorState> = {}): SectorState => ({
@@ -141,7 +141,7 @@ describe('grievance hardens into a state a faction can use', () => {
   it('one angry night does not make a household available — it takes TURN_SHIFTS', () => {
     let household = { ...sector().households[0]!, grievance: 0.75 };
     const nights: Array<'available' | 'informant' | null> = [];
-    for (let i = 0; i < TURN_SHIFTS; i++) {
+    for (let i = 0; i < turnShifts(); i++) {
       const step = harden(household);
       nights.push(step.became);
       household = step.household;

@@ -20,6 +20,7 @@
  */
 
 import { hashString, mix32, streamFor, type Rng } from '@core/rng';
+import { TUNING } from '@core/tuning';
 import type { Papers } from '@core/content';
 
 export const KNOWN_CAP = 12;
@@ -94,11 +95,14 @@ export function temperature(sector: SectorState): number {
   // A district with nobody in it has no pressure to report. Returning the
   // neutral 50 would make "evacuated" read as "half-hostile".
   if (sector.households.length === 0) return 0;
+  // weights come from tuning.json so the campaign runner can sweep them; the four terms
+  // and their meaning are the design decision, the weights are the dial
+  const w = TUNING.district.temperature_weights;
   const t =
-    0.5 * (100 - legitimacy(sector)) +
-    0.2 * clamp(sector.force_index / MAX_FORCE, 0, 1) * 100 +
-    0.15 * clamp(sector.supply_deficit, 0, 1) * 100 +
-    0.15 * clamp(sector.faction_heat, 0, 1) * 100;
+    w.legitimacy * (100 - legitimacy(sector)) +
+    w.force * clamp(sector.force_index / TUNING.district.max_force, 0, 1) * 100 +
+    w.supply * clamp(sector.supply_deficit, 0, 1) * 100 +
+    w.faction * clamp(sector.faction_heat, 0, 1) * 100;
   return Math.round(clamp(t, 0, 100));
 }
 

@@ -18,6 +18,7 @@ import barksJson from '../content/examples/barks.json';
 import interiorJson from '../content/maps/interior_flat14.json';
 import anchorsJson from '../content/maps/incident_anchors.json';
 import { ContentError, ContentVersion } from '@core/content';
+import { TUNING } from '@core/tuning';
 import { TileMap, type Vec2 } from '@core/nav';
 import { SaveError, createSaveService } from '@core/save';
 import { createBrowserStorage } from './platform/storage';
@@ -285,7 +286,7 @@ async function start(): Promise<void> {
     scenes.scheduled = [...sim.effectState.scheduled];
     const deck = buildDeck('beat_morning', loaded.bundle.micro_events, { includeBeats: true });
     const drawn = deck.draw({
-      k: sim.state.shift === 1 ? 2 : 1,
+      k: sim.state.shift === 1 ? TUNING.storylets.cards_first_shift : TUNING.storylets.cards_per_shift,
       ctx: {
         shift: sim.state.shift,
         temperature: sim.streetTemperature(),
@@ -321,7 +322,10 @@ async function start(): Promise<void> {
             ...sectorState,
             households: sectorState.households.map((h) => ({
               ...h,
-              grievance: Math.max(0, Math.min(1, h.grievance - totals.legitimacy * 0.02)),
+              grievance: Math.max(
+                0,
+                Math.min(1, h.grievance - totals.legitimacy * TUNING.scenes.legitimacy_to_grievance),
+              ),
             })),
           };
           sim.setSector(sectorState);
@@ -329,7 +333,7 @@ async function start(): Promise<void> {
         const line = closingLine(scenes);
         if (line) hud.radio(line, 'speaker');
         // the next one comes after a beat, so two cards never stack without air
-        window.setTimeout(playNextScene, 900);
+        window.setTimeout(playNextScene, TUNING.scenes.air_between_cards_ms);
       },
     });
   }
@@ -395,7 +399,7 @@ async function start(): Promise<void> {
         briefingEl = null;
         sim.beginBeat();
         drawScenes();
-        window.setTimeout(playNextScene, 700);
+        window.setTimeout(playNextScene, TUNING.scenes.delay_before_first_ms);
         hud.announce(`SHIFT 1 · ${sim.quotaInspections} INSPECTIONS`, 4200);
         hud.radio(barks.radio());
         showAnchors();

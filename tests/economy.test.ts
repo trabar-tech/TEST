@@ -8,12 +8,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { TUNING } from '@core/tuning';
 import {
   DEBT_FLOOR,
   MAX_LINES,
-  RENT,
-  FOOD,
-  MEDICINE,
   insolvencyGap,
   mayPromote,
   resolveLedger,
@@ -22,6 +20,9 @@ import {
   wage,
 } from '@systems/economy';
 
+const RENT = TUNING.economy.rent;
+const FOOD = TUNING.economy.food;
+const MEDICINE = TUNING.economy.medicine;
 const lines = standardLines({ medicine: true });
 const need = (cost: number) => ({ kind: 'need' as const, label: 'A school permit', cost });
 

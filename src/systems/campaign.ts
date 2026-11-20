@@ -17,6 +17,7 @@
  */
 
 import type { Directive, Storylet } from '@core/content';
+import { TUNING } from '@core/tuning';
 import { streamFor } from '@core/rng';
 import { Simulation } from './shift';
 import { buildDeck } from './storylets';
@@ -157,7 +158,7 @@ export function runCampaign(opts: CampaignOptions): CampaignResult {
     scenes = createSceneLog(n);
     const deck = buildDeck('beat_morning', opts.cards, { includeBeats: true });
     const drawn = deck.draw({
-      k: n === 1 ? 2 : 1,
+      k: n === 1 ? TUNING.storylets.cards_first_shift : TUNING.storylets.cards_per_shift,
       ctx: {
         shift: n,
         temperature: temperature(sector),
