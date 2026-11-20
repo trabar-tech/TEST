@@ -25,6 +25,7 @@
 | P3-T08 | Cell HTN-lite plans + grudges | `src/systems/plans.ts` | same |
 | P3-T03/T10/T12 | Composition + the Inspector | `src/systems/showrunner.ts`, `src/ui/inspector.ts` | `tests/showrunner.test.ts` (21), `tests/ui-inspector.test.ts` (13) |
 | P3-T03 tail | The street speaks its grade | `src/systems/mood.ts`, `Barks.forGrade`, `barks.json#by_grade` | `tests/mood.test.ts` (13) |
+| P3-T02 (UI) | The Registry screen | `src/ui/registry.ts`, persisted Known set in `main.ts` | `tests/ui-registry.test.ts` (14) |
 | P3-T11 | Contradicting standing orders, enforced | `src/systems/directive-conflicts.ts`, audit `directive` findings, desk warning, `main.ts` order rotation | `tests/directive-conflicts.test.ts` (21), `tests/orders.test.ts` (7), 2 in `tests/ui-desk.test.ts` |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
 
@@ -121,6 +122,11 @@ says so."
 - **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
   (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
   system and it needs the shift's tally, which currently lives in `main.ts`.
+- **The Registry screen is the only campaign surface in the browser.** `R` (or `?registry`)
+  opens it: twelve faces with the household line and why each is known, the rest of the
+  sector as anonymous records, and a column of people who have gone out of your head.
+  Visiting a household materialises them and takes a slot. The Known set is persisted on
+  `GameState.flags`, so a reload cannot reset the apophenia budget.
 - **The showrunner is not wired into `main.ts`.** It runs headless and is fully tested, but
   the browser's shift loop is still Phase 1's. Wiring it changes the shape of a shift (the
   deck chooses the morning's beats), which is a UI decision that should follow a G2 session
@@ -140,18 +146,20 @@ likely to break and what to look at:
    need to reach the surface — the ladder's step 2, the "what the Directorate noticed"
    summary.
 3. **Apophenia (2 of 3).** This is the one the build is aimed at. `materialise()` is pure, so
-   the person arrested on Tuesday is provably the person from Monday's flat, and the Known set
-   is capped at 12. What is missing is *frequency*: nothing yet forces a Known face into a
-   shift. If testers cannot name three citizens, the ladder's step 3 (cap 8, force a known
-   face every shift) applies directly.
+   the person arrested on Tuesday is provably the person from Monday's flat, the Known set is
+   capped at 12, and the Registry screen is where a tester can actually look at the names.
+   What is still missing is *frequency*: nothing forces a Known face into a shift, and the
+   visitors (the six slice citizens on the street) are not yet drawn from the same sixty
+   households. If testers cannot name three citizens, the ladder's step 3 (cap 8, force a
+   known face every shift) applies directly — and `KnownSet(8)` already works.
 
 ## 5. Verified
 
 ```
-npm run verify                534 passed / 40 files
+npm run verify                548 passed / 41 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
-node scripts/check-boundaries ✓ 47 source files, 5 rules
+node scripts/check-boundaries ✓ 49 source files, 5 rules
 npx tsx scripts/validate-content.ts  ✓ 1 bundle, 0 warnings
 ```
 

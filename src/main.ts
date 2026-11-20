@@ -33,6 +33,8 @@ import { createDebrief } from '@ui/debrief';
 import { createCaseFile } from '@ui/case-file';
 import { Barks, type BarkSet } from '@systems/barks';
 import { streetGrade } from '@systems/mood';
+import { KnownSet, generateSector } from '@systems/households';
+import { createRegistry, meetHousehold } from '@ui/registry';
 import { Incident } from '@systems/tactical/incident';
 import { createIncidentView } from '@ui/incident-view';
 import { createPlaylist } from '@ui/playlist';
@@ -103,6 +105,7 @@ async function start(): Promise<void> {
   const { storage, kind, warning } = await createBrowserStorage();
   const params = new URLSearchParams(location.search);
   const wantsPlaylist = params.has('playlist');
+  const wantsRegistry = params.has('registry');
   const seed = Number(params.get('seed') ?? 20261118) || 20261118;
 
   const sim = new Simulation({
@@ -205,6 +208,48 @@ async function start(): Promise<void> {
     debrief = null;
     briefingEl?.remove();
     briefingEl = null;
+    registry?.destroy();
+    registry = null;
+  }
+
+  let registry: ReturnType<typeof createRegistry> | null = null;
+
+  /**
+   * The Known set (P3-T02), persisted on the sector's own flag record so a reload
+   * cannot quietly forget who the Warden knows — the whole apophenia budget dies if
+   * a refresh resets it.
+   */
+  const knownKey = 'known';
+  const loadKnown = (): KnownSet => KnownSet.fromJSON(sim.state.flags[knownKey] as never ?? {});
+  const saveKnown = (set: KnownSet): void => {
+    sim.state.flags[knownKey] = set.toJSON() as never;
+  };
+
+  /** The district behind the street: generated once from the seed, never re-rolled. */
+  let sectorState = generateSector({ seed });
+
+  function openRegistry(): void {
+    if (registry) return;
+    registry = createRegistry(host, {
+      sector: { ...sectorState, shift: sim.state.shift },
+      known: loadKnown(),
+      seed,
+      onClose: () => {
+        registry = null;
+      },
+      onVisit: (householdId) => {
+        const known = loadKnown();
+        const met = meetHousehold(sectorState, known, seed, householdId, 'you went to look', sim.state.shift);
+        saveKnown(known);
+        registry?.refresh();
+        if (met.agent) {
+          hud.announce(`${met.agent.name.toUpperCase()} — ${met.agent.post.replace(/_/g, ' ').toUpperCase()}`, 3000);
+        }
+        if (met.evicted) {
+          hud.radio(`${met.evicted} drops off your list. You will not get the name back.`, 'speaker');
+        }
+      },
+    });
   }
 
   let playlist: ReturnType<typeof createPlaylist> | null = null;
@@ -684,6 +729,15 @@ async function start(): Promise<void> {
     if ((e.key === 'e' || e.key === 'E') && sim.phase === 'beat') {
       openDesk();
     }
+    if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
+      if (registry) {
+        registry.destroy();
+        registry = null;
+      } else {
+        openRegistry();
+      }
+      return;
+    }
     if ((e.key === 'p' || e.key === 'P') && !e.ctrlKey && !e.metaKey) {
       openPlaylist();
     }
@@ -768,6 +822,7 @@ async function start(): Promise<void> {
   requestAnimationFrame(frame);
   showBriefing();
   if (wantsPlaylist) window.setTimeout(openPlaylist, 400);
+  if (wantsRegistry) window.setTimeout(openRegistry, 400);
   overlay.flash('briefing · click Begin the shift');
 
   if (import.meta.env.DEV) {

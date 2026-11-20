@@ -46,7 +46,7 @@ npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
                    # E opens the desk early, C opens the case file, F enters the flat,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 534 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 548 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
@@ -62,7 +62,8 @@ before you sign.
 
 **Key bindings:**
 on the street — click to walk, click a citizen to inspect, `E` the desk, `C` the case file,
-`F` the flat, `1`–`4` timescale, `P` the playtest script, `` ` `` diagnostics. Append `?playlist`
+`R` the Registry (who you know, and who you have lost), `F` the flat, `1`–`4` timescale,
+`P` the playtest script, `` ` `` diagnostics. `?registry` opens the Registry directly. Append `?playlist`
 to the URL to run the G1 session (`docs/03-production/phases/02b-phase-1-2-debt.md`).
 In an incident — `1`–`8` are the eight orders (hold, move, stack, breach, clear, detain, escalate,
 withdraw), `Esc` ends it, clicking an order chip moves it to the front of the queue,

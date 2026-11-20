@@ -116,7 +116,7 @@ Goal: 6 shifts that feel like a place with a memory. Gate G2.
 | ID | Task | Acceptance check |
 |---|---|---|
 | `[x]` P3-T01 | Household records (60) + per-shift sim tick < 15 ms | 10 no-input shifts produce a coherent rising-tension history | *60 households generate from a seed; temperature/legitimacy/grade tested. Per-shift tick budget not yet profiled.*
-| `[x]` P3-T02 | Agent **materialisation** from households (deterministic) + **12-Known cap** | a person you arrested appears as a named relative later; Known set never exceeds 12 | *`materialise()` is pure — the same household is the same person across shifts. Known cap 12, eviction tested. Forced reappearance not yet wired.*
+| `[x]` P3-T02 | Agent **materialisation** from households (deterministic) + **12-Known cap** | a person you arrested appears as a named relative later; Known set never exceeds 12 | *`materialise()` is pure — the same household is the same person across shifts. Known cap 12, eviction tested and visible in the Registry screen (`R`). Forced reappearance still not wired.*
 | `[x]` P3-T03 | Temperature formula + colour grade + barks driven by it | players can predict "the street is worse today" without a meter | *formula + grade tested; every other ambient line is now a graded bark off the saved sector memory (`mood.ts`). The street reads the tactical ratchet, not the campaign formula — they merge when the showrunner goes live*
 | `[x]` P3-T04 | The **Cell** plan engine (HTN-lite: 3–5 authored 3-step plans) | a plan can be discovered by informants and prevented tactically | *Cell `advancePlan` procure→recruit→strike, read by informants, with grudges as records*
 | `[x]` P3-T05 | **Storylet deck runtime**: prereqs, utility scoring, weighted draw | adding a storylet JSON file changes behaviour with no code change | *`src/systems/storylets.ts`; content changes behaviour with no code change (proved by `tests/phase3-content.test.ts`)*
@@ -132,7 +132,7 @@ Goal: 6 shifts that feel like a place with a memory. Gate G2.
 gap (12 storylets, 22 directives) and it is the gap the cut line prefers. Barks are not yet
 driven by grade, and the showrunner is not yet wired into the browser's shift loop — both
 deliberately, because both are decisions a G2 session should inform. See
-`phases/05-phase-3-as-built.md`.
+`phases/04b-phase-3-as-built.md`.
 
 **Gate G2:** *"Does the city feel alive and unfair in the right way?"* Also ask: *"Can you name
 three citizens?"* (apophenia check — research R-1). **NOT RUN** — no human has played this.

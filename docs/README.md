@@ -53,8 +53,10 @@ docs/
 │       ├─ 00-phase-index.md    ← start here: standing rules, gate protocol, schedule breaks
 │       ├─ 01-phase-0-harness.md
 │       ├─ 02-phase-1-record-slice.md
+│       ├─ 02b-phase-1-2-debt.md  ← the debt-closing phase
 │       ├─ 03-phase-2-tactical.md
 │       ├─ 04-phase-3-sim-directors.md
+│       ├─ 04b-phase-3-as-built.md  ← what actually landed vs the plan above
 │       ├─ 05-phase-4-campaign.md
 │       ├─ 06-phase-5-release.md
 │       └─ 07-phase-6-overseer.md

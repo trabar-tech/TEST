@@ -21,7 +21,7 @@ candidate), deliverables, and the playtest gate script.
 | 2 · Tactical | `03-phase-2-tactical.md` | 6–9 | **G1** | is the pause fun, and is the paper still the point? — **built 2026-11-18, gate pending** |
 | 2b · Debt | `02b-phase-1-2-debt.md` | 1 | — | the G1 protocol, persistence, and the plan renderer — **done 2026-11-18** |
 | 3 · Sim & directors | `04-phase-3-sim-directors.md` | 7–10 | **G2** | does the city feel alive and unfair in the right way? |
-| 3 · as built | `05-phase-3-as-built.md` | — | — | what actually landed, what was cut, and where G2 is most likely to break |
+| 3 · as built | `04b-phase-3-as-built.md` | — | — | what actually landed, what was cut, and where G2 is most likely to break |
 | 4 · Campaign | `05-phase-4-campaign.md` | 6–8 | **G3** | would I finish this twice? |
 | 5 · Release | `06-phase-5-release.md` | 4–6 | — | does it run on a normal laptop? |
 | 6 · OVERSEER | `07-phase-6-overseer.md` | 1 + 10–14 | **G4** | is attention scarcity tense? |
