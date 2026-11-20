@@ -256,6 +256,9 @@ export class Simulation {
       state.shift,
     );
 
+    // the street opens already carrying the district's mood, not a neutral one
+    if (this.sector) this.citizens.setDreadLift(this.dreadLifts(this.sector));
+
     this.bus.emit('shift:ready', {
       seed: opts.seed,
       shift: state.shift,
@@ -672,10 +675,36 @@ export class Simulation {
    * Replace the district. Called when the player's filings have changed it, so the
    * street and the Registry read the same households rather than snapshots of each
    * other.
+   *
+   * Recomputing the dread lift here is what makes the seam visible on the street: a
+   * man whose household the Cell has recruited walks differently from one whose
+   * household is quiet, without any new authored content.
    */
   setSector(sector: SectorState): void {
     this.sector = sector;
     this.homes.clear();
+    this.citizens.setDreadLift(this.dreadLifts(sector));
+  }
+
+  /**
+   * Household grievance → citizen dread. Floor at half the grievance, because a person
+   * from an angry house is not *only* afraid — some of them are the anger — and cap at
+   * 1. The authored `dread` stays as a base term inside `Citizens.effectiveDread`.
+   */
+  private dreadLifts(sector: SectorState): Map<string, number> {
+    const lifts = new Map<string, number>();
+    for (const citizen of this.citizens.all) {
+      const home = homeFor(sector, this.state.seed, this.citizens.def(citizen.id) ?? undefined as never);
+      const household = home ? sector.households.find((h) => h.id === home.household_id) : undefined;
+      if (!household) continue;
+      // a person from a hardened household is carrying something the neighbours can see;
+      // the multiplier is small because it lands on top of an authored temperament
+      const lift = household.flags.includes('available')
+        ? Math.max(0.3, household.grievance * 0.55)
+        : household.grievance * 0.35;
+      lifts.set(citizen.id, Math.min(1, lift));
+    }
+    return lifts;
   }
 
   setDirectives(directives: readonly Directive[]): void {

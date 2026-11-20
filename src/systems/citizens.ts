@@ -143,7 +143,7 @@ export class Citizens {
       settled: true,
       // stagger the first move so the street does not breathe in unison
       dwell: 6 + (this.rngs.get(def.id)?.next() ?? 0.5) * 14,
-      fear: def.dread * 0.5,
+      fear: Math.min(1, this.effectiveDread(def.id) * 0.5),
       inspections: 0,
     });
   }
@@ -152,6 +152,38 @@ export class Citizens {
    * One simulation step. Called by the shift loop, never by render.
    * `warden` is the player's position; passing it in keeps this testable.
    */
+  /**
+   * A household's grievance as a lift on its people's dread (P3-T01).
+   *
+   * Without this, the six individuals on the street are scenery that happens to be
+   * attached to a district: a frightened man from a household the Cell has recruited
+   * looks exactly like a frightened man from a quiet one. The base `dread` in the
+   * authored cast is the *floor* — a person from a hardened household cannot be calm,
+   * whatever their temperament says.
+   *
+   * Set by the shift when the district changes; absent means the authored values
+   * stand, which keeps the pure Phase 1 slice working.
+   */
+  private dreadLift = new Map<string, number>();
+
+  setDreadLift(byCitizen: ReadonlyMap<string, number>): void {
+    this.dreadLift = new Map(byCitizen);
+  }
+
+  /**
+   * The dread this citizen is actually carrying.
+   *
+   * With no district the authored value is returned *unchanged* — the Phase 1 slice
+   * must not quietly become a calmer place because Phase 3 introduced a lift. With a
+   * district, the household's mood is added to the authored base and clamped.
+   */
+  effectiveDread(id: string): number {
+    const base = this.defs.get(id)?.dread ?? 0.3;
+    const lift = this.dreadLift.get(id);
+    if (lift === undefined) return base;
+    return Math.min(1, base + lift);
+  }
+
   step(dt: number, warden: Vec2): void {
     for (const def of this.defs.values()) {
       const state = this.sim.citizenState(def.id);
@@ -161,7 +193,8 @@ export class Citizens {
       // fear tracks distance to the Warden, floored at the citizen's baseline
       const dist = Math.hypot(state.pos.x - warden.x, state.pos.y - warden.y);
       const proximity = Math.max(0, 1 - dist / FEAR_RADIUS);
-      const target = Math.min(1, def.dread * 0.6 + proximity * (0.4 + def.dread * 0.6));
+      const dread = this.effectiveDread(def.id);
+      const target = Math.min(1, dread * 0.6 + proximity * (0.4 + dread * 0.6));
       state.fear += (target - state.fear) * Math.min(1, dt * 0.8);
 
       // moving?

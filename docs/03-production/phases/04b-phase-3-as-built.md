@@ -27,6 +27,7 @@
 | P3-T03 tail | The street speaks its grade | `src/systems/mood.ts`, `Barks.forGrade`, `barks.json#by_grade` | `tests/mood.test.ts` (13) |
 | P3-T02 (wire) | The street **is** the district: stable homes, learned by inspection, filed lines make people Known | `src/systems/citizen-homes.ts`, `Simulation.homeOf/knownCandidate`, desk `THE HOUSEHOLD` panel | `tests/citizen-homes.test.ts` (20), `tests/ui-desk-home.test.ts` (4) |
 | P3-T01 (reaction) | The district reacts to filings, and hardens | `src/systems/household-reaction.ts`, wired in `main.ts` | `tests/household-reaction.test.ts` (19) |
+| P3-T01 (mood) | Citizens carry their household's mood | `Citizens.effectiveDread`, `Simulation.setSector` | `tests/citizen-homes.test.ts` (+5) |
 | P3-T02 (UI) | The Registry screen | `src/ui/registry.ts`, persisted Known set in `main.ts` | `tests/ui-registry.test.ts` (14) |
 | P3-T11 | Contradicting standing orders, enforced | `src/systems/directive-conflicts.ts`, audit `directive` findings, desk warning, `main.ts` order rotation | `tests/directive-conflicts.test.ts` (21), `tests/orders.test.ts` (7), 2 in `tests/ui-desk.test.ts` |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
@@ -127,6 +128,20 @@ household becomes `available`, which is exactly what the Cell's recruitment step
 The loop is now: you file → the district hardens → the Cell recruits from it → the Cell
 strikes → you respond. That is the ratchet the whole sim exists to produce.
 
+## 2d. People wear their district
+
+The last seam in §2c's list: a frightened man from a household the Cell has recruited looked
+exactly like a frightened man from a quiet one. `Citizens.effectiveDread()` now adds the
+household's mood to the authored temperament, so grievance is visible on a body on the street
+before anybody reads a number. A household flagged `available` lifts harder, because a person
+from an angry house is not only afraid.
+
+The bug this turned up is worth keeping: the first version computed `base * 0.6 + lift`
+unconditionally, which meant a shift with **no district** quietly lowered every citizen's dread
+by 40%. The pure Phase 1 slice must not become a calmer place because Phase 3 introduced a
+lift, so `effectiveDread()` now returns the authored value untouched when there is no
+household — and the test that caught it asserts exactly that.
+
 ## 2b. Standing orders are now a rule, not a comment
 
 The contradiction graph was detected and warned about since Phase 0 and **enforced by
@@ -178,11 +193,12 @@ says so."
 - **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
   (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
   system and it needs the shift's tally, which currently lives in `main.ts`.
-- **Citizens still do not *show* their household's mood.** Grievance now flows back into the
-  district (§2c), but the six individuals on the street do not visibly change: a frightened
-  citizen from an `available` household still looks exactly like a frightened citizen from a
-  quiet one. Their dread should read from their household's grievance, and it does not yet.
-  That is the last seam between the two layers.
+- **Nothing yet *forces* a Known face back into a shift.** The seams between the two layers are
+  closed: the street's citizens are households (§2a), filings change the district (§2c), and
+  citizens carry their household's mood (`Citizens.effectiveDread`, §2d). What is still absent
+  is frequency — a person you know is not more likely to be the next incident, so a tester can
+  learn twelve names and then never meet any of them again. That is ladder step 3, and it is
+  the first thing to do after a G2 session.
 - **The Registry screen is the only campaign surface in the browser.** `R` (or `?registry`)
   opens it: twelve faces with the household line and why each is known, the rest of the
   sector as anonymous records, and a column of people who have gone out of your head.
@@ -209,16 +225,16 @@ likely to break and what to look at:
 3. **Apophenia (2 of 3).** This is the one the build is aimed at. `materialise()` is pure, so
    the person arrested on Tuesday is provably the person from Monday's flat, the Known set is
    capped at 12, and the Registry screen is where a tester can actually look at the names.
-   The six people on the street now *are* six of the sixty, so a tester who inspects and
-   files meets real households rather than invented ones. What is still missing is *frequency*:
-   nothing forces a Known face back into a shift — a person you know is not more likely to
-   be the next incident. If testers cannot name three citizens, that is the gap to close
-   (ladder step 3: cap 8, force a known face every shift; `KnownSet(8)` already works).
+   The six people on the street now *are* six of the sixty, a tester who inspects and files
+   meets real households, and those people visibly carry their household's mood. What is
+   still missing is *frequency*: nothing forces a Known face back into a shift. If testers
+   cannot name three citizens, that is the gap (ladder step 3: cap 8, force a known face every
+   shift; `KnownSet(8)` already works).
 
 ## 5. Verified
 
 ```
-npm run verify                591 passed / 44 files
+npm run verify                596 passed / 44 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
 node scripts/check-boundaries ✓ 51 source files, 5 rules

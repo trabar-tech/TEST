@@ -191,3 +191,74 @@ describe('the inspection is where the player learns it', () => {
     expect(bare.homeOf('c-0221')).toBeNull();
   });
 });
+
+describe('a citizen carries their household\'s mood', () => {
+  const sim = (sectorOverride?: ReturnType<typeof generateSector>) => {
+    const s = new Simulation({
+      seed: 2026,
+      shift: 1,
+      map: new TileMap(mapJsonToDef(mapJson)),
+      mapJson,
+      citizens: citizensJson,
+      sector: sectorOverride ?? sector(),
+    });
+    s.beginBeat();
+    return s;
+  };
+
+  it('reports an effective dread at least as high as the authored one scaled', () => {
+    const s = sim();
+    const authored = citizensJson.citizens.find((c) => c.id === 'c-0221')!.dread;
+    expect(s.citizens.effectiveDread('c-0221')).toBeGreaterThanOrEqual(authored);
+  });
+
+  it('raises dread for everyone whose household is angry and available', () => {
+    const base = sector();
+    const angry = {
+      ...base,
+      households: base.households.map((h) => ({ ...h, grievance: 0.9, flags: ['available'] })),
+    };
+    const calmSim = sim();
+    const angrySim = sim(angry);
+    expect(angrySim.citizens.effectiveDread('c-0221')).toBeGreaterThan(
+      calmSim.citizens.effectiveDread('c-0221'),
+    );
+  });
+
+  it('never exceeds 1, however angry the district gets', () => {
+    const base = sector();
+    const worst = {
+      ...base,
+      households: base.households.map((h) => ({ ...h, grievance: 1, flags: ['available'] })),
+    };
+    const s = sim(worst);
+    for (const c of citizensJson.citizens) {
+      expect(s.citizens.effectiveDread(c.id)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('reads the district again when the district changes, so the street does not lag', () => {
+    const base = sector();
+    const s = sim();
+    const before = s.citizens.effectiveDread('c-0221');
+    s.setSector({
+      ...base,
+      households: base.households.map((h) => ({ ...h, grievance: 0.95, flags: ['available'] })),
+    });
+    expect(s.citizens.effectiveDread('c-0221')).toBeGreaterThan(before);
+  });
+
+  it('falls back to the authored dread when there is no district', () => {
+    const bare = new Simulation({
+      seed: 1,
+      shift: 1,
+      map: new TileMap(mapJsonToDef(mapJson)),
+      mapJson,
+      citizens: citizensJson,
+    });
+    expect(bare.citizens.effectiveDread('c-0221')).toBeCloseTo(
+      citizensJson.citizens.find((c) => c.id === 'c-0221')!.dread,
+      5,
+    );
+  });
+});
