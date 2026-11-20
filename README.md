@@ -46,7 +46,7 @@ npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
                    # E opens the desk early, C opens the case file, F enters the flat,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 706 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 730 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 npm run campaign   # headless 15-shift campaign: 4 policies x N seeds, one line per run
@@ -70,6 +70,10 @@ tonight badly is named, and it will be in tomorrow's briefing.
 The people you learn to name come back every shift, the briefing
 tells you why, and the raid goes to their door — so the person in the briefing is the person
 behind the door you came through.
+
+Inspections are interviews: you choose a manner (walk them through it, ask plainly, lean on
+them), and what you ask opens what you may ask next. Leaning on somebody gets answers faster and
+truth less often — and the street notices you doing it.
 
 Scenes happen on the street: a card of three beats, a decision, and a closing line reminding you
 that the decision still has to be written up. What you choose moves the district — and a

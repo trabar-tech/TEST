@@ -8,7 +8,8 @@
  */
 
 import type { Simulation } from '@systems/shift';
-import { QUESTIONS, TELLS, type CheckResult, type QuestionId } from '@systems/inspection';
+import { TELLS, type CheckResult } from '@systems/inspection';
+import { CONVERSATION, MAX_ANSWERS, PRESSURES } from '@systems/conversation';
 import type { Classification } from '@core/record';
 import { button, clear, el, label, note, panel } from './dom';
 
@@ -82,7 +83,7 @@ export function createInspectionPanel(
 
     const transcript = el('div', 'display:flex;flex-direction:column;gap:8px;min-height:150px;max-height:34vh;overflow:auto;padding-right:2px');
     if (insp.transcript.length === 0) {
-      transcript.append(note('Three questions. Choose them.)'.replace(')', '')));
+      transcript.append(note('Three answers. What you ask opens what you may ask next.'));
     }
     for (const entry of insp.transcript) {
       transcript.append(
@@ -92,26 +93,54 @@ export function createInspectionPanel(
           el('div', 'color:#8a97a5;font-size:10.5px', entry.question),
           el('div', 'color:#dbe4ec;font-size:12px;line-height:1.5;margin-top:2px', entry.answer),
           entry.tell
-            ? el('div', 'color:#d8b06a;font-size:10.5px;margin-top:3px;font-style:italic', `⚑ ${TELLS[entry.tell].text}`)
+            ? el(
+                'div',
+                'color:#d8b06a;font-size:10.5px;margin-top:3px;font-style:italic',
+                `⚑ ${entry.note ?? TELLS[entry.tell]?.text ?? ''}`,
+              )
             : null,
         ),
       );
     }
     talk.append(transcript);
 
-    const remaining = 3 - insp.asked.length;
+    const remaining = MAX_ANSWERS - insp.transcript.length;
+    talk.append(
+      el(
+        'div',
+        'display:flex;gap:6px;align-items:baseline;flex-wrap:wrap',
+        el('div', 'color:#6f7d8b;font-size:9.5px;letter-spacing:.14em', 'MANNER'),
+        ...PRESSURES.map((p) =>
+          button(p.label, () => {
+            sim.setPressure(p.id);
+            render();
+          }, {
+            style: chipStyle(insp.pressure === p.id),
+            title: p.gloss,
+          }),
+        ),
+      ),
+    );
+
     const askRow = el('div', 'display:flex;flex-wrap:wrap;gap:5px');
     if (remaining > 0) {
-      for (const q of QUESTIONS) {
-        const used = insp.asked.includes(q.id);
+      const open = sim.openQuestions();
+      // only what this conversation has opened: a follow-up appears because of something
+      // they said, which is the whole point of asking in an order
+      const followUps = open.filter((q) => !CONVERSATION.find((c) => c.id === q.id)?.prime);
+      for (const q of open) {
         askRow.append(
           button(q.text, () => {
             sim.askQuestion(q.id);
             render();
           }, {
-            disabled: used,
-            style: chipStyle(used),
+            style: chipStyle(false),
           }),
+        );
+      }
+      if (followUps.length === 0) {
+        askRow.append(
+          el('div', 'color:#5d6a77;font-size:10px', 'Listen to what they say — it opens questions.'),
         );
       }
     } else {
@@ -196,4 +225,4 @@ function note2(text: string): HTMLElement {
   return el('div', 'margin-top:10px;font-size:10px;color:#7a7364;font-style:italic', text);
 }
 
-export type { QuestionId };
+export type { ConversationId } from '@systems/conversation';

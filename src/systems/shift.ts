@@ -56,15 +56,17 @@ import {
   sceneNote,
   truthFromIncident,
 } from './tactical/paperwork';
+import { runChecks, type CheckResult } from './inspection';
 import {
-  MAX_QUESTIONS,
-  QUESTIONS,
-  answerQuestion,
-  runChecks,
-  type CheckResult,
-  type QuestionId,
-  type TranscriptEntry,
-} from './inspection';
+  CONVERSATION,
+  MAX_ANSWERS,
+  answer,
+  availableQuestions,
+  pressureDef,
+  type ConversationId,
+  type Line,
+  type Pressure,
+} from './conversation';
 
 /* --------------------------------------------------------------- content */
 
@@ -135,6 +137,12 @@ export interface DocketEvent {
    * not a hidden fact.
    */
   edge?: { household_id: string; line: string; discrepancy: string | null };
+  /**
+   * How the interview was conducted (P1-T04). Carried on the event because the desk has to
+   * charge for it: leaning on somebody in the street is a decision with a price, and if the
+   * price were invisible the manner control would be decoration.
+   */
+  manner?: number;
 }
 
 export interface DocketScene {
@@ -173,8 +181,12 @@ export interface ShiftOptions {
 
 export interface InspectionState {
   citizenId: string;
-  asked: QuestionId[];
-  transcript: TranscriptEntry[];
+  /** every answer given, in order; also the transcript the panel renders */
+  transcript: Line[];
+  /** ids asked, kept separately because the panel disables them by id */
+  asked: ConversationId[];
+  /** the manner the Warden is using; the interaction's only lever */
+  pressure: Pressure;
   checks: CheckResult[];
   fullCheckDone: boolean;
   openedAtTick: number;
@@ -447,6 +459,7 @@ export class Simulation {
     const checks = runChecksFor(def, this.state.shift);
     this.inspection = {
       citizenId,
+      pressure: 'neutral',
       asked: [],
       transcript: [],
       checks,
@@ -458,21 +471,49 @@ export class Simulation {
     return this.inspection;
   }
 
-  askQuestion(id: QuestionId): void {
+  /**
+   * Ask a question.
+   *
+   * The conversation replaced a fixed table of six questions with primes and follow-ups
+   * (P1-T04, rebuilt after playtest 1): a question that is not open yet cannot be asked, and
+   * what is open depends on what they have already said. That is what makes the transcript an
+   * interview rather than a checklist.
+   */
+  askQuestion(id: ConversationId): void {
     const insp = this.inspection;
     if (!insp) return;
-    if (insp.asked.length >= MAX_QUESTIONS || insp.asked.includes(id)) return;
+    if (insp.transcript.length >= MAX_ANSWERS || insp.asked.includes(id)) return;
     const def = this.citizens.def(insp.citizenId);
-    const q = QUESTIONS.find((x) => x.id === id);
+    const q = CONVERSATION.find((x) => x.id === id);
     if (!def || !q) return;
-    const answer = answerQuestion(
+    if (!availableQuestions(insp.transcript, insp.asked).some((a) => a.id === id)) return;
+
+    const line = answer(
       { id: def.id, temperament: def.temperament, answers: def.true_answers, irregularity: def.irregularity },
       q,
-      { asked: insp.asked, rng: this.rng },
+      { lines: insp.transcript, pressure: insp.pressure, rng: this.rng },
     );
     insp.asked.push(id);
-    insp.transcript.push({ id, question: answer.question, answer: answer.answer, tell: answer.tell });
-    this.bus.emit('inspection:asked', { citizen: def.id, question: id, tell: answer.tell });
+    insp.transcript.push({
+      id,
+      question: line.question,
+      answer: line.answer,
+      tell: line.tell,
+    });
+    this.bus.emit('inspection:asked', { citizen: def.id, question: id, tell: line.tell });
+  }
+
+  /** Set the manner of the interview. Applies to answers given after it changes. */
+  setPressure(pressure: Pressure): void {
+    if (!this.inspection) return;
+    this.inspection.pressure = pressure;
+  }
+
+  /** What may be asked right now, for the panel. */
+  openQuestions(): Array<{ id: ConversationId; text: string }> {
+    const insp = this.inspection;
+    if (!insp) return [];
+    return availableQuestions(insp.transcript, insp.asked).map((q) => ({ id: q.id, text: q.text }));
   }
 
   /** The slow, attention-drawing comparison of every field. */
@@ -575,6 +616,8 @@ export class Simulation {
       quota: 1,
       draft,
       tags_hint: defective ? ['insufficient_papers'] : [],
+      // what the manner costs, captured before the interview is closed
+      manner: this.inspection ? pressureDef(this.inspection.pressure).scrutiny : 0,
     };
 
     // the edge into the district: a citizen is a household, and the case file says so
@@ -855,6 +898,7 @@ export class Simulation {
       cameras: event.cameras,
       witnesses: event.witnesses,
       contradictions: this.record.contradictionsFor({ claim: draft, witnesses: event.witnesses }),
+      manner: event.manner,
     });
   }
 

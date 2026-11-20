@@ -391,6 +391,14 @@ export interface ExposureInput {
   cameras: string[];
   witnesses: WitnessRef[];
   contradictions: string[];
+  /**
+   * How the interview was conducted, 0–1 (P1-T04).
+   *
+   * A Warden who leaned on somebody in public was watched doing it. This is not a lie about
+   * the incident — it is a separate reason the line draws attention, which is why it is
+   * added *after* the "no divergence, no exposure" rule: an honest line can still be noticed.
+   */
+  manner?: number;
 }
 
 /**
@@ -420,7 +428,9 @@ export function computeExposure(input: ExposureInput): ExposureReport {
     input.contradictions.length > 0 ? 0.85 : 0,
   );
   // nothing to expose if nothing diverges, and no lie counts without evidence
-  const risk = s === 0 || evidence === 0 ? 0 : Math.min(1, evidence * (0.6 + 0.4 * s));
+  const lie = s === 0 || evidence === 0 ? 0 : Math.min(1, evidence * (0.6 + 0.4 * s));
+  // the manner is its own exposure: how you asked is on the record whether or not you lied
+  const risk = Math.min(1, lie === 0 ? Math.min(0.3, (input.manner ?? 0) * 0.5) : lie + (input.manner ?? 0) * 0.4);
   return {
     cameras: [...input.cameras],
     camera_blocked: input.cameras.length === 0,

@@ -145,6 +145,8 @@ P0 ──▶ P1 (Record) ──G0──▶ P2 (tactical) ──G1──▶ P3 (s
 - [`06-playtest-01.md`](06-playtest-01.md) — first human session: three real bugs (modal clicks
   moving the Warden, repeated cards, no inspection range), and the expectation mismatch it
   surfaced. Not a gate.
+- [`07-playtest-01-response.md`](07-playtest-01-response.md) — the conversation rebuilt: pressure
+  as a lever with a price, follow-ups opened by what was said, tells that belong to a line.
 
 ## Phase 4 entry
 

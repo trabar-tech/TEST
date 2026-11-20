@@ -123,25 +123,47 @@ describe('inspection', () => {
     expect(sim.clock.pendingMode).toBe('focus');
   });
 
-  it('offers exactly three questions, and refuses a fourth', () => {
+  it('offers exactly three answers, and refuses a fourth', () => {
     const sim = makeSim();
     sim.beginBeat();
     talkTo(sim, 'c-0307');
-    for (const q of QUESTIONS.slice(0, 3)) sim.askQuestion(q.id);
+    for (const q of ['shift_boss', 'pass_line3', 'hands'] as const) sim.askQuestion(q);
     expect(sim.inspection!.transcript).toHaveLength(3);
-    sim.askQuestion(QUESTIONS[3]!.id);
+    sim.askQuestion('rations');
     expect(sim.inspection!.transcript).toHaveLength(3);
     // asking the same one twice does nothing either
-    sim.askQuestion(QUESTIONS[0]!.id);
+    sim.askQuestion('shift_boss');
     expect(sim.inspection!.transcript).toHaveLength(3);
   });
 
-  it('shows a tell on every answer', () => {
+  it('a follow-up cannot be asked before it is opened', () => {
+    const sim = makeSim();
+    sim.beginBeat();
+    talkTo(sim, 'c-0307');
+    // `again_slower` opens on any answer, `who_else_knows` needs neighbours or a gate
+    expect(sim.openQuestions().map((q) => q.id)).not.toContain('who_else_knows');
+    sim.askQuestion('who_else_knows');
+    expect(sim.inspection!.transcript).toHaveLength(0);
+  });
+
+  it('a tell is a property of one line, not a whole person', () => {
     const sim = makeSim();
     sim.beginBeat();
     talkTo(sim, 'c-0414');
-    sim.askQuestion('shift_boss');
-    expect(sim.inspection!.transcript[0]!.tell).not.toBeNull();
+    // over many seeds and many answers, some lines leak and some do not: a person who is
+    // *entirely* smooth is a stat, and a single smooth sentence is something to notice
+    let leaks = 0;
+    let quiet = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const s2 = makeSim();
+      s2.beginBeat();
+      talkTo(s2, 'c-0414');
+      for (const q of ['shift_boss', 'pass_line3', 'hands'] as const) s2.askQuestion(q);
+      for (const line of s2.inspection!.transcript) line.tell ? leaks++ : quiet++;
+      void seed;
+    }
+    expect(leaks).toBeGreaterThan(0);
+    expect(quiet).toBeGreaterThan(0);
   });
 
   it('the full check is what reveals a warped seal', () => {

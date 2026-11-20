@@ -219,7 +219,7 @@ describe('the inspection panel', () => {
     expect(text).toContain('chip_serial'.length > 0 ? 'Chip serial' : '');
   });
 
-  it('asking a question adds it to the transcript with its tell', () => {
+  it('asking a question adds it to the transcript, and a tell marks the line it belongs to', () => {
     const sim = simWithDocket();
     sim.beginBeat();
     talkTo(sim, 'c-0221');
@@ -227,12 +227,17 @@ describe('the inspection panel', () => {
     byText('button', 'Who is your shift boss?').click();
     expect(sim.inspection!.transcript).toHaveLength(1);
     panel.render();
-    expect(host.textContent).toContain('⚑');
-    // a used question is disabled, not removed: the player can see what they spent
-    const used = [...host.querySelectorAll('button')].find((b) =>
-      (b.textContent ?? '').includes('Who is your shift boss?'),
-    ) as HTMLButtonElement;
-    expect(used.disabled).toBe(true);
+    // a tell is a property of one line now, so it shows only when this line leaked. When it
+    // does, the flag carries *its meaning* rather than a code.
+    const leaked = sim.inspection!.transcript.some((l) => l.tell !== null);
+    expect(host.textContent!.includes('⚑')).toBe(leaked);
+
+    // the question is gone from the list rather than greyed out: the transcript above shows
+    // what was spent, and a disabled button in a growing list is clutter in a small panel
+    const gone = [...host.querySelectorAll('button')].some((b) =>
+      (b.textContent ?? '').trim() === 'Who is your shift boss?',
+    );
+    expect(gone).toBe(false);
   });
 
   it('deciding closes the panel and hands the outcome to the docket', () => {
