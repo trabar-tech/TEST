@@ -49,6 +49,15 @@ hoarding, and it keeps the economy from inflating in a 15-shift campaign.
 | Inspector | 4 | 9 | 48 / 12 / 40 | 2 | 6 | 17 | Raid authorisation, advanced interrogation |
 | Section Lead | 5 | 12 | 55 / 15 / 45 | 4 | 8 | 21 | Drone tasking, audit override, denounce |
 
+> **⚠ Arithmetic contradiction, recorded 2026-11-18.** The wage formula above
+> (`8 + rank × 2` → 10 FP at rank 1) and the §6.1 nightly bill (rent 30 + food 22 + medicine
+> 15 = **67 FP**) cannot both be right: every rank is insolvent on night one, and a single
+> missed night exceeds the −60 debt floor. The §3 table's own rank-5 wage (21) also disagrees
+> with the formula (18). The ledger is built and tested against this spec but deliberately
+> **not wired into the game** until the scale is decided — see
+> [`03-production/phases/05-phase-4-entry.md`](../03-production/phases/05-phase-4-entry.md) §4
+> for measurements and three candidate fixes.
+
 **Promotion rule:** `std >= threshold(tier)` and `reviews_in_last_3 == 0` and at least one
 *favourable* audit. Promotion is **granted at briefing**, in fiction, by a superior — it feels
 like being handed a heavier coat. Demotion exists and is worse than death for the player's

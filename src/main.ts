@@ -62,7 +62,7 @@ import {
   readSector,
   recordForce,
 } from '@systems/sector';
-import { advanceShift, ordersForShift } from '@systems/shift-cycle';
+import { advanceShift, collectActs, ordersForShift } from '@systems/shift-cycle';
 import { ORDER_HOTKEYS, type OrderKind } from '@systems/tactical/types';
 import { stepCrowd, type CrowdDef } from '@systems/tactical/crowd';
 import { crowdDocket } from '@systems/tactical/paperwork';
@@ -758,26 +758,12 @@ async function start(): Promise<void> {
    * nothing. The reaction is computed from the pre-audit docket and applied after it.
    */
   function reactionForTheDistrict(): Reaction | null {
-    const filed = sim.record.query({ shift: sim.state.shift });
-    const acts = filed
-      .map((line) => {
-        const event = sim.docket.find((e) => e.ref === line.event_ref);
-        const household = event?.edge?.household_id;
-        return household ? { household_id: household, classification: line.claim.classification, force_rung: line.claim.force_rung } : null;
-      })
-      .filter((a): a is NonNullable<typeof a> => a !== null);
-
-    // auto-filed incidents are charged too: their claim was written by the desk, not by
-    // the Warden, but the household behind the door cannot tell the difference
-    for (const line of sim.lastAutoFiled) {
-      const event = sim.docket.find((e) => e.ref === line.event_ref);
-      const household = event?.edge?.household_id;
-      if (household) {
-        acts.push({ household_id: household, classification: line.claim.classification, force_rung: line.claim.force_rung });
-      }
-    }
+    const acts = collectActs(
+      sim.docket,
+      sim.record.query({ shift: sim.state.shift }),
+      sim.lastAutoFiled,
+    );
     if (acts.length === 0) return null;
-
     return reactToFilings({ sector: { ...sectorState, shift: sim.state.shift }, acts });
   }
 

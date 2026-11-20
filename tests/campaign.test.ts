@@ -15,7 +15,7 @@ import { TileMap } from '@core/nav';
 import { mapJsonToDef, loadBundle, type MapJson } from '../scripts/lib/load-content';
 import { generateSector } from '@systems/households';
 import { POLICIES, runCampaign, summariseCampaign, type CampaignOptions } from '@systems/campaign';
-import { ordersForShift } from '@systems/shift-cycle';
+import { collectActs, ordersForShift } from '@systems/shift-cycle';
 import { ContentVersion } from '@core/content';
 import type { MapJsonSlice } from '@systems/shift';
 
@@ -117,5 +117,35 @@ describe('the shift cycle is shared with the browser, so it lives in one place',
 
   it('returns nothing rather than throwing when a bundle has no directives', () => {
     expect(ordersForShift([], 1)).toEqual([]);
+  });
+});
+
+describe('act collection lives in one place, so the ordering bug cannot return', () => {
+  const docket = [
+    { ref: 'a', edge: { household_id: 'h-001' } },
+    { ref: 'b', edge: null },
+    { ref: 'c', edge: { household_id: 'h-003' } },
+  ];
+  const line = (ref: string, cls: string) => ({
+    event_ref: ref,
+    claim: { classification: cls, force_rung: 2 },
+  });
+
+  it('takes hand-written and auto-filed lines alike', () => {
+    const acts = collectActs(docket, [line('a', 'P')], [line('c', 'R')]);
+    expect(acts.map((a) => a.household_id)).toEqual(['h-001', 'h-003']);
+  });
+
+  it('skips an event with no household rather than inventing one', () => {
+    expect(collectActs(docket, [line('b', 'D')], []).map((a) => a.household_id)).toEqual([]);
+  });
+
+  it('never charges the same event twice, even if both line sets contain it', () => {
+    const acts = collectActs(docket, [line('a', 'P')], [line('a', 'R')]);
+    expect(acts).toHaveLength(1);
+  });
+
+  it('returns nothing for an empty docket', () => {
+    expect(collectActs([], [], [])).toEqual([]);
   });
 });

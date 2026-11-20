@@ -156,6 +156,7 @@ phase transition is not declared.
 |---|---|---|
 | `[~]` P4-T04 (harness) | Headless campaign runner, 4 policies, 15 shifts | `npm run campaign` — deterministic per seed; policies diverge; 13 tests |
 | `[ ]` P4-T01 | Rank/quota/perk/requisition systems | promotion always adds a verb, never just a number |
+| `[~]` P4-T02 (ledger) | Four-line nightly ledger, −60 floor, promotion gate, supply channel | 17 tests in `tests/economy.test.ts`; **not wired** — the spec's wage (10–18 FP) and bill (67 FP) are arithmetically incompatible, see `05-phase-4-entry.md` §4 |
 | `[ ]` P4-T02 | Household ledger, debt tree, Syndicate thread | negative FP recoverable within 2 shifts via ≥1 path |
 | `[ ]` P4-T03 | Family scenes (reactive, not nagging) | every family scene references *today's* events |
 | `[ ]` P4-T04 | 15-shift campaign structure + act transitions | can be played start to finish with no dead ends |

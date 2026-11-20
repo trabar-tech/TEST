@@ -16,6 +16,7 @@ import type { Directive, Storylet } from '@core/content';
 import type { Simulation } from './shift';
 import { decayGrudges } from './plans';
 import { nextShift as advanceSector } from './sector';
+import type { FiledAct } from './household-reaction';
 
 export interface CycleResult {
   shift: number;
@@ -46,6 +47,44 @@ export function ordersForShift(directives: readonly Directive[], shift: number):
     .map((id) => directives.find((d) => d.id === id))
     .filter((d): d is Directive => d !== undefined && !picked.includes(d));
   return [...picked, ...partner];
+}
+
+/**
+ * Every act the district will be charged for tonight, captured in one place.
+ *
+ * This function exists because the same bug was written twice: once in `main.ts` and once
+ * in the campaign runner, both times by reacting to the record *before* `submit()` had
+ * written the lines the Warden left blank. Copying the correct sequence into a second
+ * caller simply produced a second, subtly wrong caller. The sequence now lives here, and
+ * callers pass in the docket and both line sets rather than re-deriving them.
+ *
+ * Order matters: an auto-filed line is as real to the household behind the door as one
+ * written by hand, and `submit()` is the only reason a blank becomes a line at all.
+ */
+export function collectActs(
+  docket: ReadonlyArray<{ ref: string; edge?: { household_id: string } | null }>,
+  filed: ReadonlyArray<{ event_ref: string; claim: { classification: string; force_rung?: number } }>,
+  autoFiled: ReadonlyArray<{ event_ref: string; claim: { classification: string; force_rung?: number } }>,
+): FiledAct[] {
+  const byRef = new Map(docket.map((e) => [e.ref, e.edge?.household_id]));
+  const acts: FiledAct[] = [];
+  const seen = new Set<string>();
+
+  for (const line of [...filed, ...autoFiled]) {
+    // an auto-filed line and a hand-written one cannot both exist for the same event
+    // (submit() skips anything already filed), but dedupe anyway: double-charging a
+    // household is a bug that looks like a balance problem
+    if (seen.has(line.event_ref)) continue;
+    seen.add(line.event_ref);
+    const household_id = byRef.get(line.event_ref);
+    if (!household_id) continue;
+    acts.push({
+      household_id,
+      classification: line.claim.classification as FiledAct['classification'],
+      force_rung: line.claim.force_rung,
+    });
+  }
+  return acts;
 }
 
 export interface AdvanceOptions {

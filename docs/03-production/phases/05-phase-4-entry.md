@@ -135,11 +135,58 @@ Stated here because a tool that hides its scope is worse than no tool:
 
 ---
 
-## 4. What Phase 4 should do next
+## 4. The household ledger is built, and its numbers do not reconcile
 
-1. **Move act-collection into `shift-cycle.ts`** so §2a cannot recur a third time.
-2. **Give the campaign loop something that moves `supply_deficit` and `force_index`** — the
-   economy. That is P4-T02, and §2d says it is the gate on temperature meaning anything.
+`src/systems/economy.ts` implements `SYS-ECON-01` §6: four lines (hard cap, enforced), a
+wage, the −60 debt floor as a scene rather than a fail state, promotion gating, and one
+narrow channel from the personal purse to the district's supply. Seventeen tests.
+
+It is **not wired into the campaign loop**, and that is deliberate. Measure the spec against
+itself:
+
+| rank | wage | bill (rent 30 + food 22 + medicine 15) | night's balance | lines paid |
+|---|---|---|---|---|
+| 1 | 10 | 67 | −57 | none |
+| 3 | 14 | 67 | −53 | none |
+| 5 | 18 | 67 | −49 | none |
+
+- `§3` gives `wage = 8 + rank × 2` → **10 FP at rank 1**.
+- `§3`'s own table gives `Wage 10 … 21` → **21 FP at rank 5**.
+- `§6.1` gives a nightly bill of **67 FP**.
+
+So: the two wage statements disagree with each other, and *both* are far below the bill.
+Every rank is insolvent on night one, and a **single** missed night (67) exceeds the −60
+debt floor, which makes "debt allowed to −60" meaningless.
+
+The "a player who never lies can afford rent in Act I and *barely* in Act II (~30% failure
+in Act II)" curve that `§8` asks for has no range to live in at these numbers — Act I is
+already impossible. This cannot be resolved in code; it is a design decision, and picking a
+number here would have hidden it behind a green test. `insolvencyGap()` and one test exist
+specifically to keep the contradiction visible until it is decided.
+
+**Three candidate fixes, in the order I would argue for them:**
+
+1. **Lower the bill** (`SYS-ECON-01`'s own second principle is that *rent* is the number
+   players feel — 72 FP was quoted for the flat). A rank-1 Warden needs a bill around 8–12
+   FP just to break even on the spec's wage, which suggests the bill is meant in *hundredths*
+   or the wage in another unit. Picking a scale is the cheapest fix and needs no new content.
+2. **Raise the wage** to roughly 3–4× the table. Cheap, but then rent is never scary and the
+   "cannot out-skill" pressure disappears.
+3. **Make the wage quota-conditional** (the spec already says "+2 if quota met"), so the
+   real curve is *income variance*, not level. Most interesting, most work, and the only one
+   that makes the campaign runner's temperature curve do anything.
+
+**Recommendation: do 3, but stage it as 1 → 3.** Fix the scale first (so the ledger is
+solvent at all), then move surplus into quota performance, then sweep with `npm run campaign`
+looking for a ~30% Act II failure rate.
+
+## 5. What Phase 4 should do next
+
+1. ~~Move act-collection into `shift-cycle.ts`~~ — **done**: `collectActs()` is shared, with
+   four tests that assert the ordering properties directly.
+2. **Reconcile the ledger's numbers** (§4) and then wire the economy into the campaign loop,
+   which is what moves `supply_deficit` and `force_index`. §2d says this is the gate on
+   temperature meaning anything at all.
 3. **Decide the known-cast question honestly** (§2c): six recurring households may be the
    right design. If it is, write it down as a decision; if it is not, widening it is a
    content problem, not a systems one.

@@ -20,7 +20,7 @@ import type { Directive, Storylet } from '@core/content';
 import { streamFor } from '@core/rng';
 import { Simulation } from './shift';
 import { buildDeck } from './storylets';
-import { advanceShift } from './shift-cycle';
+import { advanceShift, collectActs } from './shift-cycle';
 import { createSceneLog, pending, playResolution, sceneTotals, type SceneLogState } from './scene-log';
 import { reactToFilings, harden } from './household-reaction';
 import { chooseRecurrence } from './recurrence';
@@ -229,11 +229,13 @@ export function runCampaign(opts: CampaignOptions): CampaignResult {
 
     /* ----------------------------------------------------------------- audit */
     // captured before submit() writes the lines the Warden did not; applied after
-    const reaction = collectReaction(sim, sector, totals.legitimacy);
+    // captured before submit() writes the lines the Warden did not; recomputed after, so
+    // the auto-filed ones are included. The act collection itself is shared (shift-cycle).
+    const preAudit = collectReaction(sim, sector, totals.legitimacy);
     const audit = sim.submit();
-    const withAuto = includeAutoFiled(reaction, sim, sector);
-    if (withAuto) {
-      sector = applyReaction(sector, withAuto);
+    const reaction = preAudit ? collectReaction(sim, sector, totals.legitimacy) : null;
+    if (reaction) {
+      sector = applyReaction(sector, reaction);
       sim.setSector(sector);
     }
     fault = opts.observe ? opts.observe(fault, audit) : fault;
@@ -306,52 +308,21 @@ function quietRaid() {
 }
 
 function collectReaction(sim: Simulation, sector: SectorState, legitimacy: number) {
-  const filed = sim.record.query({ shift: sim.state.shift });
-  const acts = filed
-    .map((line) => {
-      const event = sim.docket.find((e) => e.ref === line.event_ref);
-      const household = event?.edge?.household_id;
-      return household
-        ? { household_id: household, classification: line.claim.classification, force_rung: line.claim.force_rung }
-        : null;
-    })
-    .filter((a): a is NonNullable<typeof a> => a !== null);
-  if (acts.length === 0 && legitimacy === 0) return null;
-  const base = { ...sector, shift: sim.state.shift };
+  const acts = collectActs(sim.docket, sim.record.query({ shift: sim.state.shift }), sim.lastAutoFiled);
+  if (acts.length === 0) return null;
   // a shift of decent decisions is felt the same way good paperwork is (P3-T04)
-  const eased =
+  const base: SectorState =
     legitimacy > 0
       ? {
-          ...base,
-          households: base.households.map((h) => ({ ...h, grievance: Math.max(0, h.grievance - legitimacy * 0.02) })),
+          ...sector,
+          shift: sim.state.shift,
+          households: sector.households.map((h) => ({
+            ...h,
+            grievance: Math.max(0, h.grievance - legitimacy * 0.02),
+          })),
         }
-      : base;
-  return acts.length === 0 ? null : reactToFilings({ sector: eased, acts });
-}
-
-/**
- * The second half of the ordering trap (AGENTS.md): `submit()` writes auto-filed lines for
- * everything left unfiled, and those lines are what the district actually feels. A runner
- * that reacts to the pre-audit docket alone under-counts every absent player — which is
- * precisely the player the design wants to punish.
- */
-function includeAutoFiled(
-  pre: ReturnType<typeof reactToFilings> | null,
-  sim: Simulation,
-  sector: SectorState,
-): ReturnType<typeof reactToFilings> | null {
-  if (sim.lastAutoFiled.length === 0) return pre;
-  const eased = pre ? pre.sector : { ...sector, shift: sim.state.shift };
-  const acts = sim.lastAutoFiled
-    .map((line) => {
-      const event = sim.docket.find((e) => e.ref === line.event_ref);
-      const household = event?.edge?.household_id;
-      return household
-        ? { household_id: household, classification: line.claim.classification, force_rung: line.claim.force_rung }
-        : null;
-    })
-    .filter((a): a is NonNullable<typeof a> => a !== null);
-  return acts.length === 0 ? pre : reactToFilings({ sector: eased, acts });
+      : { ...sector, shift: sim.state.shift };
+  return reactToFilings({ sector: base, acts });
 }
 
 function applyReaction(sector: SectorState, reaction: ReturnType<typeof reactToFilings>): SectorState {
