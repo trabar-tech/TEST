@@ -149,11 +149,10 @@ system.
 **Status: entry work in progress.** Entry criteria: the campaign runner ✓, `tuning.json` ✓
 (`content/tuning.json` + `npm run sweep`), headless 15-shift play ✓. **G2 not run.**
 
-**Status (cont).** The headless campaign runner — Phase 4's own first entry
-criterion — exists (`npm run campaign`, `src/systems/campaign.ts`), shares the shift boundary
-with the browser, and has already falsified three assumptions; see
-[`phases/05-phase-4-entry.md`](phases/05-phase-4-entry.md). **G2 has not been run**, so the
-phase transition is not declared.
+The campaign runner and the tuning surface share the shift boundary with the browser rather
+than re-implementing it, and between them they have falsified five assumptions in the model so
+far; see [`phases/05-phase-4-entry.md`](phases/05-phase-4-entry.md). Because **G2 has not been
+run**, the phase transition is not declared.
 
 | ID | Task | Acceptance check |
 |---|---|---|
