@@ -312,3 +312,43 @@ describe('the day turns', () => {
     expect(belief.lines).toBe(1);
   });
 });
+
+/** The smallest honest IncidentResult the docket path accepts. */
+const honestResult = () =>
+  ({
+    roomClaims: [{ room: 'north', claimedClear: true, actuallyClear: true }],
+    forceUsed: [],
+    damage: 0,
+    detainees: 0,
+    casualties: 0,
+    noiseEvents: 1,
+    loudestNoise: 1,
+    heardByNeighbours: 0,
+    wallsBreached: 0,
+    entryMethod: 'knock_talk' as const,
+    unauthorisedForce: false,
+    stabilised: [],
+    unfound: [],
+    soloHits: 0,
+    ticksElapsed: 40,
+  }) as never;
+
+describe('an incident the Warden never wrote a line for is still charged for (P3-T02)', () => {
+  it('keeps the auto-filed lines so the district can react to them', () => {
+    const sim = makeSim();
+    sim.addIncident(honestResult(), { ref: 'int-1-1', address: 'Block C', cameras: [], householdId: 'h-001' });
+    // no line filed for int-1-1: submit() writes one itself
+    expect(sim.lastAutoFiled).toEqual([]);
+    sim.submit();
+    expect(sim.lastAutoFiled).toHaveLength(1);
+    expect(sim.lastAutoFiled[0]!.event_ref).toBe('int-1-1');
+    // and it is filed by the desk (`ai_auto`), not by the Warden
+    expect(sim.lastAutoFiled[0]!.authority).toBe('ai_auto');
+  });
+
+  it('keeps the household id even with no district loaded, so the raid is not free', () => {
+    const sim = makeSim();
+    sim.addIncident(honestResult(), { ref: 'int-1-1', address: 'Block C', cameras: [], householdId: 'h-004' });
+    expect(sim.docket[0]!.edge?.household_id).toBe('h-004');
+  });
+});

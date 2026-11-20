@@ -227,6 +227,33 @@ Two name collisions in one commit, both caught by the compiler rather than by pl
 collision of this kind in the project; the lesson has been written into `AGENTS.md` as a
 standing warning about `main.ts`.
 
+## 2h. The debrief answers for the district
+
+The compliance sheet is the *audit's* voice, and the audit has no opinion about
+households. So after a raid was charged to a household (§2f), the only trace the player
+got was a number that had already moved by the time the next briefing drew. The world
+looked like it was not tracking anything.
+
+The debrief now has a second panel, after the belief rows and before tomorrow's briefing —
+the order a person actually thinks in: what the paperwork says, then who it landed on,
+then what happens next. It carries the district's sentence in its own words
+(`kiln row is angry, and the neighbours are watching`), the household that took it worst,
+and the line *"They will be in the briefing"* — which is true, because §2e guarantees it.
+
+**Wiring this found the thesis quietly not applying.** The district's reaction used to run
+*before* `submit()`. But `submit()` is what auto-files every incident the Warden left no
+line for, so those lines did not exist yet when the district was asked to react. The one
+behaviour the game most wants to punish — leaving the paperwork empty — cost the district
+nothing. Reaction is now captured from the pre-audit docket, auto-filed lines are added to
+the acts, and the result is applied after the audit. A refusal written by the desk angers
+a household exactly as much as one written by hand, which is the point: the household
+cannot tell the difference.
+
+A related silent drop: `attachHousehold` returned early when no district was loaded,
+discarding the `householdId` entirely. The id is a fact about where the incident happened;
+only the readable block name needs the district. It is now kept even with no sector, so a
+raid cannot be free just because a map loaded before the district did.
+
 ## 2b. Standing orders are now a rule, not a comment
 
 The contradiction graph was detected and warned about since Phase 0 and **enforced by
@@ -278,6 +305,9 @@ says so."
 - **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
   (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
   system and it needs the shift's tally, which currently lives in `main.ts`.
+- **The district's sentence is not yet quoted back at the briefing.** It lives on the
+  debrief, which is where a player looks immediately, but a tester who skims may only read
+  the radio toast. Worth checking in G0 before adding a second place to say it.
 - **Scenes are one card deep per shift.** The deck draws two cards on shift 1 and one
   thereafter, and a card is played on the street before the desk. There is no *between*-shift
   economy for a scene yet: its legitimacy touches the district, but its `standing` and
@@ -324,7 +354,7 @@ likely to break and what to look at:
 ## 5. Verified
 
 ```
-npm run verify                640 passed / 46 files
+npm run verify                651 passed / 47 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
 node scripts/check-boundaries ✓ 54 source files, 5 rules

@@ -10,6 +10,20 @@ import type { Simulation } from '@systems/shift';
 import type { AuditResult } from '@systems/audit';
 import { button, clear, el, label, note, panel } from './dom';
 
+export interface DebriefOptions {
+  onRestart: () => void;
+  /**
+   * What the district says about tonight, in its own words, computed from the claims
+   * that were filed *and* the ones the desk had to write itself. Null when nothing the
+   * Warden did touched a household.
+   */
+  district?: string | null;
+  /** the household that took it worst, already formatted as "block · h-000" */
+  worstHousehold?: string | null;
+  /** the last street scene of the shift, as a closing line */
+  scene?: string | null;
+}
+
 export interface DebriefHandle {
   render(result: AuditResult): void;
   destroy(): void;
@@ -18,7 +32,7 @@ export interface DebriefHandle {
 export function createDebrief(
   sim: Simulation,
   host: HTMLElement,
-  opts: { onRestart: () => void },
+  opts: DebriefOptions,
 ): DebriefHandle {
   const root = el(
     'div',
@@ -98,6 +112,38 @@ export function createDebrief(
       );
     }
     sheet.append(b);
+
+    /* ------------------------------------------------------ the district's answer */
+    //
+    // Placed *after* the belief panel and before tomorrow's briefing, because that is
+    // the order a person thinks in: what the paperwork says, then who it landed on,
+    // then what happens next. The audit has no opinion about households, so without
+    // this panel the raid's consequences were only ever visible as a shifted number
+    // next shift — which is exactly the kind of feedback that makes players stop
+    // believing the world is tracking anything.
+    if (opts.district) {
+      const d = panel('position:relative;margin-top:10px;background:#0b0e11;border-color:rgba(200,110,95,.34)');
+      d.append(
+        el('div', 'color:#8b97a4;letter-spacing:.16em;font-size:9.5px', 'THE DISTRICT'),
+        el('div', 'margin-top:6px;color:#e6d7d2;line-height:1.7;font-size:11.5px', opts.district),
+      );
+      if (opts.worstHousehold) {
+        d.append(
+          el(
+            'div',
+            'margin-top:7px;color:#8a7a72;font-size:9.5px',
+            `who took it worst: ${opts.worstHousehold}. They will be in the briefing.`,
+          ),
+        );
+      }
+      sheet.append(d);
+    }
+
+    if (opts.scene) {
+      sheet.append(
+        el('div', 'margin-top:8px;color:#5d6a77;font-size:9.5px;line-height:1.6;font-style:italic', opts.scene),
+      );
+    }
 
     /* --------------------------------------------- the next shift's briefing */
     const next = nextBriefing(result, belief);

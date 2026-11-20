@@ -47,3 +47,15 @@ npx tsx scripts/validate-content.ts
 ```
 
 All four green, or say which one is not and why.
+
+## The ordering trap (learned the hard way, twice)
+
+`submit()` is not a pure reads-and-decides call: it *writes* auto-filed lines for every
+incident left unfiled. Anything computed from `sim.record` beforehand sees a smaller world
+than the audit does. When the district reaction ran before `submit()`, leaving the
+paperwork empty cost the district nothing — the game's central claim, quietly false, with
+a green test suite.
+
+Before computing anything from the record at desk-close, ask: *has submit() already run?*
+If not, either compute after, or capture the act list and explicitly union the auto-filed
+lines.

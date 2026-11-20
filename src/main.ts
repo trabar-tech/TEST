@@ -34,7 +34,7 @@ import { createCaseFile } from '@ui/case-file';
 import { Barks, type BarkSet } from '@systems/barks';
 import { streetGrade } from '@systems/mood';
 import { KnownSet, generateSector } from '@systems/households';
-import { harden, reactToFilings } from '@systems/household-reaction';
+import { harden, reactToFilings, type Reaction } from '@systems/household-reaction';
 import {
   chooseRecurrence,
   hostForIncident,
@@ -756,7 +756,19 @@ async function start(): Promise<void> {
    * when a filing does describe one, the district reacts to the paperwork, which is
    * the whole thesis of the game in one call.
    */
-  function reactToTheDistrict(): string | null {
+  /**
+   * Everything the district is about to be charged for, captured *before* the audit so
+   * the debrief can report it — but not applied here.
+   *
+   * Order matters and this used to be wrong. `submit()` auto-files any incident the
+   * Warden left no line for, and the auto-filing is what a household actually feels: a
+   * refusal (claim R) is an insult, walking away (X) is the street noticing, and a blank
+   * (mechanical `-`) is "nothing happened", which the table scores at 0.02. Applying the
+   * district reaction *before* the audit meant those lines did not exist yet, so the one
+   * thing the game most wants to punish — leaving the paperwork empty — cost the district
+   * nothing. The reaction is computed from the pre-audit docket and applied after it.
+   */
+  function reactionForTheDistrict(): Reaction | null {
     const filed = sim.record.query({ shift: sim.state.shift });
     const acts = filed
       .map((line) => {
@@ -765,10 +777,24 @@ async function start(): Promise<void> {
         return household ? { household_id: household, classification: line.claim.classification, force_rung: line.claim.force_rung } : null;
       })
       .filter((a): a is NonNullable<typeof a> => a !== null);
+
+    // auto-filed incidents are charged too: their claim was written by the desk, not by
+    // the Warden, but the household behind the door cannot tell the difference
+    for (const line of sim.lastAutoFiled) {
+      const event = sim.docket.find((e) => e.ref === line.event_ref);
+      const household = event?.edge?.household_id;
+      if (household) {
+        acts.push({ household_id: household, classification: line.claim.classification, force_rung: line.claim.force_rung });
+      }
+    }
     if (acts.length === 0) return null;
 
-    const before = sectorState;
-    const reaction = reactToFilings({ sector: { ...before, shift: sim.state.shift }, acts });
+    return reactToFilings({ sector: { ...sectorState, shift: sim.state.shift }, acts });
+  }
+
+  /** Apply a reaction captured before the audit. Called after `submit()`. */
+  function applyDistrictReaction(reaction: Reaction | null): string | null {
+    if (!reaction) return null;
     // the district hardens: grievance becomes availability, which the Cell recruits from
     sectorState = { ...reaction.sector, households: reaction.sector.households.map((h) => harden(h).household) };
     sim.setSector(sectorState);
@@ -800,12 +826,22 @@ async function start(): Promise<void> {
 
   function submitDocket(): void {
     learnFromFilings();
-    const district = reactToTheDistrict();
+    const reaction = reactionForTheDistrict();
     const result = sim.submit();
+    const district = applyDistrictReaction(reaction);
     if (district) hud.radio(district, 'speaker');
     desk?.destroy();
     desk = null;
-    debrief = createDebrief(sim, host, { onRestart: beginNextShift });
+    const householdLabel = reaction?.worst
+      ? `${reaction.worst.block.replace(/_/g, ' ')} · ${reaction.worst.household_id}`
+      : null;
+    const scenesFootnote = closingLine(scenes);
+    debrief = createDebrief(sim, host, {
+      onRestart: beginNextShift,
+      district,
+      worstHousehold: householdLabel,
+      scene: scenesFootnote,
+    });
     debrief.render(result);
   }
 

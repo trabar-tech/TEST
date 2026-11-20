@@ -46,7 +46,7 @@ npm install
 npm run dev        # http://localhost:5173 — click to walk, click a citizen to inspect,
                    # E opens the desk early, C opens the case file, F enters the flat,
                    # 1-4 timescale, ` diagnostics
-npm run verify     # typecheck + 640 tests (determinism, saves, Record, audit, tactical, UI)
+npm run verify     # typecheck + 651 tests (determinism, saves, Record, audit, tactical, UI)
 npm run validate   # content CLI: schema, ids, references, connective-tissue ratio
 npm run check:boundaries
 ```
@@ -61,7 +61,10 @@ tells you where they live, the desk shows it beside the evidence, and filing a l
 them puts that household in your Registry. The person you arrest on Tuesday is the person
 from Monday's flat, because they are the same record — and the district reacts to what you
 file: arrests raise a household's grievance, the neighbours feel a third of it, and what you
-do outlasts what you say. The people you learn to name come back every shift, the briefing
+do outlasts what you say. The debrief answers for the district as well as for the paperwork: a household that took
+tonight badly is named, and it will be in tomorrow's briefing.
+
+The people you learn to name come back every shift, the briefing
 tells you why, and the raid goes to their door — so the person in the briefing is the person
 behind the door you came through.
 

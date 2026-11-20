@@ -154,3 +154,37 @@ describe('grievance hardens into a state a faction can use', () => {
     expect(harden(sector().households[0]!).became).toBeNull();
   });
 });
+
+describe('the household that took it worst', () => {
+  const sector = {
+    shift: 3,
+    households: [
+      { id: 'h-001', block: 'kiln_row', grievance: 0.2, available: false, hardened: 0 },
+      { id: 'h-002', block: 'kiln_row', grievance: 0.2, available: false, hardened: 0 },
+      { id: 'h-003', block: 'canal_market', grievance: 0.2, available: false, hardened: 0 },
+    ],
+  } as never;
+
+  it('names the household with the largest positive delta', () => {
+    const reaction = reactToFilings({
+      sector,
+      acts: [
+        { household_id: 'h-001', classification: 'P' },
+        { household_id: 'h-003', classification: 'D' },
+      ],
+    });
+    expect(reaction.worst?.household_id).toBe('h-003');
+    expect(reaction.worst?.block).toBe('canal_market');
+  });
+
+  it('is null when nothing anyone filed made things worse', () => {
+    const reaction = reactToFilings({ sector, acts: [{ household_id: 'h-001', classification: 'P' }] });
+    expect(reaction.worst).toBeNull();
+  });
+
+  it('is null for an empty docket, rather than inventing a culprit', () => {
+    const reaction = reactToFilings({ sector, acts: [] });
+    expect(reaction.worst).toBeNull();
+    expect(reaction.summary).toMatch(/took no notice/);
+  });
+});

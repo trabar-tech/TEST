@@ -683,7 +683,16 @@ export class Simulation {
    * address on the card is the household's address.
    */
   private attachHousehold(event: DocketEvent, householdId: string | undefined): void {
-    if (!householdId || !this.sector) return;
+    if (!householdId) return;
+    if (!this.sector) {
+      // No district loaded yet: the id is still a fact about where the incident
+      // happened, and the district reaction reads it later. Only the human-readable
+      // block needs the district, and dropping the id here is how a raid becomes free.
+      event.edge = { household_id: householdId, line: '', discrepancy: null };
+      return;
+    }
+    // With a district loaded, an id that is not in it is a genuine mismatch. Refusing it
+    // loudly beats inventing a reference to a household that does not exist.
     const household = this.sector.households.find((h) => h.id === householdId);
     if (!household) return;
     const home: CitizenHome = {
@@ -699,6 +708,12 @@ export class Simulation {
     };
     event.title = `${event.title} — ${household.block.replace(/_/g, ' ')}`;
   }
+
+  /**
+   * Lines the desk wrote because the Warden did not (P3-T02). Kept because the district
+   * reacts to the paperwork, and an auto-filed refusal still happened to somebody.
+   */
+  lastAutoFiled: ReportLine[] = [];
 
   /** What the last incident produced, for the debrief and the case file. */
   get lastIncident(): IncidentResult | null {
@@ -882,6 +897,7 @@ export class Simulation {
     });
     for (const id of result.destabilised) this.record.destabilise([id]);
 
+    this.lastAutoFiled = auto;
     this.lastAudit = result;
     this.phase = 'debrief';
     this.clock.setMode('pause');

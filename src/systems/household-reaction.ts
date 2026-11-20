@@ -63,6 +63,11 @@ export interface Reaction {
   changed: Array<{ household_id: string; delta: number; grievance: number }>;
   /** the single sentence the district would say about tonight, if it spoke */
   summary: string;
+  /**
+   * The household that took it worst, if any — carried so the debrief can put a door
+   * to the number. Null when nothing changed, which is its own answer.
+   */
+  worst: { household_id: string; block: string; delta: number; grievance: number } | null;
 }
 
 /**
@@ -101,10 +106,14 @@ export function reactToFilings(opts: ReactionOptions): Reaction {
     return { ...h, grievance: round(next) };
   });
 
+  const hardest = [...changed].filter((c) => c.delta > 0).sort((a, b) => b.delta - a.delta)[0];
   return {
     sector: { ...opts.sector, households },
     changed,
     summary: summarise(changed, byId),
+    worst: hardest
+      ? { ...hardest, block: byId.get(hardest.household_id)?.block ?? 'kiln_row' }
+      : null,
   };
 }
 
