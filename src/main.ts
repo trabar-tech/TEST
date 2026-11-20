@@ -35,6 +35,7 @@ import { Barks, type BarkSet } from '@systems/barks';
 import { streetGrade } from '@systems/mood';
 import { KnownSet, generateSector } from '@systems/households';
 import { harden, reactToFilings } from '@systems/household-reaction';
+import { chooseRecurrence, type Recurrence } from '@systems/recurrence';
 import { createRegistry, meetHousehold } from '@ui/registry';
 import { Incident } from '@systems/tactical/incident';
 import { createIncidentView } from '@ui/incident-view';
@@ -277,6 +278,32 @@ async function start(): Promise<void> {
     });
   }
 
+  /**
+   * Who is in the news this shift (P3-T02). A Known face returns every shift, with a
+   * reason the Warden can read — the cap only means something if the twelve come back.
+   */
+  function recurrenceFor(shift: number): Recurrence | null {
+    return chooseRecurrence({
+      sector: { ...sectorState, shift },
+      known: loadKnown().all(),
+      grudges: sim.grudges,
+      shift,
+      seed,
+    });
+  }
+
+  function briefingText(): string {
+    const news = recurrenceFor(sim.state.shift);
+    if (!news) return BRIEFING;
+    const known = loadKnown().has(news.household_id);
+    return [
+      BRIEFING,
+      '',
+      known ? 'SOMEONE YOU KNOW' : 'THE STREET',
+      news.line,
+    ].join('\n');
+  }
+
   function showBriefing(): void {
     briefingEl?.remove();
     const box = el(
@@ -289,7 +316,7 @@ async function start(): Promise<void> {
     );
     inner.append(
       el('div', 'color:#6f7d8b;font:9.5px ui-monospace,monospace;letter-spacing:.2em', 'CIVIL PROTECTION · SECTOR 4 · 05:40'),
-      el('pre', 'margin:14px 0 18px;font:12px/1.75 ui-monospace,monospace;color:#c9d3dd;white-space:pre-wrap', BRIEFING),
+      el('pre', 'margin:14px 0 18px;font:12px/1.75 ui-monospace,monospace;color:#c9d3dd;white-space:pre-wrap', briefingText()),
       button('Begin the shift', () => {
         box.remove();
         briefingEl = null;

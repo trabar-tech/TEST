@@ -24,6 +24,7 @@ import {
   knownReason,
   type CitizenHome,
 } from './citizen-homes';
+import type { Grudge } from './plans';
 import type { SectorState } from './households';
 import {
   RecordStore,
@@ -202,6 +203,11 @@ export class Simulation {
   hoveredCitizenId: string | null = null;
   /** what the previous shift's paperwork did to this one's briefing */
   briefing: string[] = [];
+  /**
+   * Grudges held against the Warden, by household (P3-T08). A grudge is a *record
+   * with a cause*, never a rival: it changes who appears and why, and it decays.
+   */
+  grudges: Grudge[] = [];
   quotaInspections: number;
   inspectionsDone = 0;
   /** Standing orders for the shift; empty means the contradiction test does not fire */

@@ -28,6 +28,7 @@
 | P3-T02 (wire) | The street **is** the district: stable homes, learned by inspection, filed lines make people Known | `src/systems/citizen-homes.ts`, `Simulation.homeOf/knownCandidate`, desk `THE HOUSEHOLD` panel | `tests/citizen-homes.test.ts` (20), `tests/ui-desk-home.test.ts` (4) |
 | P3-T01 (reaction) | The district reacts to filings, and hardens | `src/systems/household-reaction.ts`, wired in `main.ts` | `tests/household-reaction.test.ts` (19) |
 | P3-T01 (mood) | Citizens carry their household's mood | `Citizens.effectiveDread`, `Simulation.setSector` | `tests/citizen-homes.test.ts` (+5) |
+| P3-T02 (recur) | Known faces return every shift, with a reason | `src/systems/recurrence.ts`, briefing in `main.ts` | `tests/recurrence.test.ts` (15) |
 | P3-T02 (UI) | The Registry screen | `src/ui/registry.ts`, persisted Known set in `main.ts` | `tests/ui-registry.test.ts` (14) |
 | P3-T11 | Contradicting standing orders, enforced | `src/systems/directive-conflicts.ts`, audit `directive` findings, desk warning, `main.ts` order rotation | `tests/directive-conflicts.test.ts` (21), `tests/orders.test.ts` (7), 2 in `tests/ui-desk.test.ts` |
 | P3-T10/T11 (partial) | Content | `content/examples/content.sample.json`: 12 micro-events (8 + 2 epilogues + 2 prior), 22 directives | `tests/phase3-content.test.ts` (9) |
@@ -142,6 +143,30 @@ by 40%. The pure Phase 1 slice must not become a calmer place because Phase 3 in
 lift, so `effectiveDread()` now returns the authored value untouched when there is no
 household — and the test that caught it asserts exactly that.
 
+## 2e. The twelve come back
+
+The 12-Known cap is a budget for apophenia, and it was spent on nothing: a Warden could learn
+twelve names and never meet any of them again. `src/systems/recurrence.ts` closes that.
+
+Once per shift it answers *who is in the news*, and the briefing prints it as a line with a
+reason:
+
+> SOMEONE YOU KNOW — Somebody from tenement row has been asking which way the patrols come.
+
+The weighting is written down rather than tuned by feel, and each term is a thing a player can
+name: a Known household outranks an unknown one (×3.2) because the player can put a name to
+them; an `available` household outranks a quiet one (×1.8) because the Cell has been to their
+door; a live grudge outranks both (×2.4) and says what it is about. **`preferKnown` defaults to
+true** — with at least one Known household, that household is guaranteed to come up, which is
+ladder step 3 (the G2 failure fix for apophenia) implemented rather than documented. When
+nobody is Known yet the district supplies its own news, which is the honest answer on a
+Warden's first shift.
+
+`rankRecurrence()` is exported separately from the draw for the same reason `trace()` is: the
+answer to "why her?" has to be inspectable. And `lineFor()` never returns a status — a
+household is a fact, a line is a story, and only the second one is worth reading on a briefing
+screen.
+
 ## 2b. Standing orders are now a rule, not a comment
 
 The contradiction graph was detected and warned about since Phase 0 and **enforced by
@@ -193,12 +218,11 @@ says so."
 - **Directive *quotas* are not measured.** Acts are scored; the numbers on a `daily` order
   (forty inspections, sixteen arrests) are still prose. That is the next honest step for this
   system and it needs the shift's tally, which currently lives in `main.ts`.
-- **Nothing yet *forces* a Known face back into a shift.** The seams between the two layers are
-  closed: the street's citizens are households (§2a), filings change the district (§2c), and
-  citizens carry their household's mood (`Citizens.effectiveDread`, §2d). What is still absent
-  is frequency — a person you know is not more likely to be the next incident, so a tester can
-  learn twelve names and then never meet any of them again. That is ladder step 3, and it is
-  the first thing to do after a G2 session.
+- **Recurrence produces a *line*, not an incident.** `recurrence.ts` guarantees a Known face
+  returns every shift and says why, but the returning household does not yet *host* anything —
+  the incident deck still picks its own site. That last hop is content (incident cards bound to
+  a household) rather than machinery, which is why it is not done: it needs the 60-storylet
+  authoring pass to be worth doing.
 - **The Registry screen is the only campaign surface in the browser.** `R` (or `?registry`)
   opens it: twelve faces with the household line and why each is known, the rest of the
   sector as anonymous records, and a column of people who have gone out of your head.
@@ -225,19 +249,20 @@ likely to break and what to look at:
 3. **Apophenia (2 of 3).** This is the one the build is aimed at. `materialise()` is pure, so
    the person arrested on Tuesday is provably the person from Monday's flat, the Known set is
    capped at 12, and the Registry screen is where a tester can actually look at the names.
-   The six people on the street now *are* six of the sixty, a tester who inspects and files
-   meets real households, and those people visibly carry their household's mood. What is
-   still missing is *frequency*: nothing forces a Known face back into a shift. If testers
-   cannot name three citizens, that is the gap (ladder step 3: cap 8, force a known face every
-   shift; `KnownSet(8)` already works).
+   Every leg of this is now built: the six people on the street are six of the sixty, filings
+   change the district, citizens wear their household's mood, and a Known face is
+   **guaranteed to return every shift** with a printed reason (§2e). If testers still cannot
+   name three citizens, the problem is no longer machinery — it is that recurrence produces a
+   line rather than an incident, and the remaining lever is the content volume (60 storylets,
+   incident cards bound to households).
 
 ## 5. Verified
 
 ```
-npm run verify                596 passed / 44 files
+npm run verify                611 passed / 45 files
 npx tsc --noEmit              clean
 npm run build                 ✓ 4.56 s
-node scripts/check-boundaries ✓ 51 source files, 5 rules
+node scripts/check-boundaries ✓ 52 source files, 5 rules
 npx tsx scripts/validate-content.ts  ✓ 1 bundle, 0 warnings
 ```
 
