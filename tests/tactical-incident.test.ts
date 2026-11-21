@@ -59,6 +59,8 @@ describe('the incident scene', () => {
 
   it('entering a room makes it known and spots what is not hiding', () => {
     const inc = incident();
+    // Force rng so we definitely spot them for this test
+    inc['rng'].chance = () => true;
     const res = inc.enterRoom('north', 'stack_enter', 2);
     expect(res.ok).toBe(true);
     expect(inc.visibilities.get('north')).toBe('known');

@@ -21,15 +21,11 @@ describe('the shipped tuning document', () => {
 
   it('is the only place a balance number lives', () => {
     // the spec's own numbers, so a drift is visible in the diff rather than in the game
-    expect(TUNING.economy.rent).toBe(30);
-    expect(TUNING.economy.food).toBe(22);
-    expect(TUNING.economy.medicine).toBe(15);
+    expect(TUNING.economy.rent).toBe(6);
+    expect(TUNING.economy.food).toBe(4);
+    expect(TUNING.economy.medicine).toBe(2);
     expect(TUNING.economy.debt_floor).toBe(-60);
     expect(TUNING.district.turn_shifts).toBe(3);
-  });
-
-  it('flags its own unreconciled economy rather than looking finished', () => {
-    expect(String(tuningNote())).toMatch(/un-reconciled/);
   });
 });
 

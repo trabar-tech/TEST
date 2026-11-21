@@ -136,9 +136,13 @@ export type DoorState =
   | 'wedged'
   | 'breached';
 
+export type HostileBehavior = 'cover' | 'ambush' | 'flee';
+
 export interface HostileDef {
   id: string;
   archetype: 'armed' | 'unarmed' | 'leader' | 'bystander';
+  /** AI personality determining tactics (P2-T04: Step 4) */
+  behavior?: HostileBehavior;
   /** tile coordinates as authored: a `[x, y]` pair, matching the map files */
   post: [number, number];
   room: string;

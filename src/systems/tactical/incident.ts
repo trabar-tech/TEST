@@ -64,12 +64,14 @@ export interface HostileState extends Target {
   pos: Vec2;
   room: string;
   archetype: 'armed' | 'unarmed' | 'leader' | 'bystander';
+  behavior: import('./types').HostileBehavior;
   /** seen by a unit or a camera? */
   spotted: boolean;
   /** true once a unit has physically cleared their sector */
   cleared: boolean;
   /** hiding keeps them out of the clear claim */
   hiding: boolean;
+  actionTimer: number;
 }
 
 export interface OfficerContact {
@@ -239,6 +241,7 @@ export class Incident {
         pos: { x: h.post[0] * this.map.tileSize, y: h.post[1] * this.map.tileSize },
         room: h.room,
         archetype: h.archetype,
+        behavior: h.behavior ?? (h.archetype === 'armed' ? 'cover' : 'flee'),
         compliance: mood.compliance,
         aggression: mood.aggression,
         wound: 'healthy',
@@ -247,6 +250,7 @@ export class Incident {
         spotted: false,
         cleared: false,
         hiding: Boolean(h.hides_in),
+        actionTimer: this.rng.next() * 1.5,
       });
     }
     this.warden = {
@@ -662,8 +666,82 @@ export class Incident {
   /** Sim-seconds of exposure the player has spent on deliberate actions so far. */
   soloExposure = 0;
 
+  private stepAi(dt: number): void {
+    const wardenTile = this.map.toTile(this.warden);
+
+    for (const h of this.hostiles.values()) {
+      if (h.detained || h.wound === 'dead' || h.wound === 'down') continue;
+      
+      h.actionTimer -= dt;
+      if (h.actionTimer > 0) continue;
+
+      // if spotted, AI might react
+      if (!h.spotted) {
+        h.actionTimer = 0.5;
+        continue;
+      }
+
+      // a compliant subject has stopped fighting
+      if (h.compliance >= 60) {
+        h.actionTimer = 1.0;
+        continue;
+      }
+
+      const room = this.rooms.get(h.room);
+      if (!room) continue;
+
+      const wardenInRoom =
+        wardenTile.tx >= room.x &&
+        wardenTile.tx < room.x + room.w &&
+        wardenTile.ty >= room.y &&
+        wardenTile.ty < room.y + room.h;
+
+      // very simple initial behavior per personality
+      if (h.behavior === 'cover') {
+        if (h.archetype === 'armed' && wardenInRoom) {
+          if (this.takeHit()) {
+            // warden down
+          }
+          this.noises.push({ source: 'shot', at: h.pos, radius: 14, walls: 3, tick: this.tick });
+          h.actionTimer = Incident.SOLO_HIT_SECONDS; 
+        } else {
+          h.actionTimer = 1.0;
+        }
+      } else if (h.behavior === 'ambush') {
+        if (wardenInRoom && h.archetype === 'armed') {
+          const dist = Math.hypot(this.warden.x - h.pos.x, this.warden.y - h.pos.y) / this.map.tileSize;
+          if (dist < 4) {
+            this.takeHit();
+            this.noises.push({ source: 'shot', at: h.pos, radius: 14, walls: 3, tick: this.tick });
+            h.actionTimer = 2.0;
+          } else {
+             h.actionTimer = 0.5;
+          }
+        } else {
+          h.actionTimer = 1.0;
+        }
+      } else if (h.behavior === 'flee') {
+        if (wardenInRoom) {
+          const rx = (this.rng.next() - 0.5) * 64;
+          const ry = (this.rng.next() - 0.5) * 64;
+          const nx = h.pos.x + rx;
+          const ny = h.pos.y + ry;
+          const tile = this.map.toTile({ x: nx, y: ny });
+          if (this.map.isWalkable(tile.tx, tile.ty)) {
+            h.pos = { x: nx, y: ny };
+          }
+          h.actionTimer = 0.5;
+        } else {
+          h.actionTimer = 1.0;
+        }
+      }
+    }
+  }
+
   private stepSolo(dt: number): void {
     this.fireCooldown = Math.max(0, this.fireCooldown - dt);
+    
+    this.stepAi(dt);
 
     // direct control first: a held direction wins over a queued route
     if (this.moveIntent && !this.wardenDown) {
@@ -678,39 +756,7 @@ export class Incident {
       this.soloRouteIndex = 0;
     }
 
-    const wardenTile = this.map.toTile(this.warden);
-    const armed = [...this.hostiles.values()].filter((h) => {
-      if (h.archetype !== 'armed' || h.wound !== 'healthy' || h.detained || !h.spotted) return false;
-      // a compliant subject has stopped shooting: compliance is what ends a
-      // standoff, and it is why the continuum exists at all
-      if (h.compliance >= 60) return false;
-      const room = this.rooms.get(h.room);
-      if (!room) return false;
-      return (
-        wardenTile.tx >= room.x &&
-        wardenTile.tx < room.x + room.w &&
-        wardenTile.ty >= room.y &&
-        wardenTile.ty < room.y + room.h
-      );
-    });
-    if (armed.length > 0) {
-      this.soloSecondsToHit -= dt;
-      if (this.soloSecondsToHit <= 0) {
-        this.takeHit();
-        this.soloSecondsToHit = Incident.SOLO_HIT_SECONDS;
-        this.noises.push({
-          source: 'shot',
-          at: armed[0]!.pos,
-          radius: 14,
-          walls: 3,
-          tick: this.tick,
-        });
-      }
-    } else {
-      // out of the line of fire: the subject loses track of you, but the moment
-      // you are back in the room the clock starts again from a full cadence
-      this.soloSecondsToHit = Incident.SOLO_HIT_SECONDS;
-    }
+
 
     if (this.soloRouteIndex >= this.soloRoute.length) return;
     const wp = this.soloRoute[this.soloRouteIndex]!;
